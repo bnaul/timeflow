@@ -1,0 +1,10 @@
+**/__pycache__
+*~
+*.pyc
+*.bak
+*.so
+*.c
+*#
+.#*
+.eggs
+**/.ipynb_checkpoints
