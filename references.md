@@ -10,6 +10,7 @@
 
 # Applications
 - **Chung, Y.-A., Wu, C.-C., Shen, C.-H., & Lee, H.-Y. (2016). Audio Word2Vec: Unsupervised Learning of Audio Segment Representations using Sequence-to-sequence Recurrent Neural Networks. Retrieved from http://arxiv.org/abs/1603.00982**
+- **Hammerla, N. Y., Halloran, S., & Ploetz, T. (2016). Deep, Convolutional, and Recurrent Models for Human Activity Recognition using Wearables. Ijcai. Retrieved from http://arxiv.org/abs/1604.08880**
 - **Lipton, Z. C., Kale, D. C., Elkan, C., & Wetzell, R. (2015). Learning to Diagnose with LSTM Recurrent Neural Networks, 1–18. Retrieved from http://arxiv.org/abs/1511.03677**
 - **Malhotra, P., Vig, L., Shroff, G., & Agarwal, P. (2015). Long Short Term Memory Networks for Anomaly Detection in Time Series. European Symposium on Artificial Neural Networks, (April), 22–24.**
 - **Tagliaferri, R., Ciaramella, A., Barone, F., & Milano, L. (1999). Neural Networks for Spectral Analysis of Unevenly Sampled Data. Retrieved from http://arxiv.org/abs/astro-ph/9906181**
