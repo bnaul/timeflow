@@ -1,1 +1,1 @@
-Deep learning resources and `tfflow`/`tensorflow` example notebooks
+# Deep learning resources and `keras`/`tensorflow` example notebooks

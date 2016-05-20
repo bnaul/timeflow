@@ -3,7 +3,7 @@ from keras.preprocessing.sequence import pad_sequences
 
 
 def random_uneven_times(N, n_min, n_max, t_max):
-    return [t_max * np.sort(np.random.random(size=np.random.randint(n_min, n_max)))
+    return [t_max * np.sort(np.random.random(size=np.random.randint(n_min, n_max + 1)))
             for i in range(N)]
 
 
@@ -12,6 +12,21 @@ def noisy_sin(_times, A, sigma, w):
     b = np.random.normal(scale=1)
     return (A * np.sin(2 * np.pi * w * _times + phi) 
             + np.random.normal(scale=sigma, size=len(_times)) + b)
+
+
+def periodic(N, n_min, n_max, t_max=None, even=True, A=1., sigma=1., w_min=0.01, w_max=1.):
+    if t_max is None:
+        t_max = float(n_max)
+
+    if even:
+        t = [np.linspace(0., t_max, n_max) for i in range(N)]
+    else:
+        t = random_uneven_times(N, n_min, n_max, t_max)
+    w = np.random.uniform(w_min, w_max, N)
+    X = pad_sequences([np.c_[t[i], noisy_sin(t[i], A, sigma, w[i])] for i in range(N)],
+                      maxlen=n_max, value=0., dtype='float')
+    
+    return X, w
 
 
 def synthetic_control(N, n_min, n_max, t_max=None, even=True, sigma=2.):
