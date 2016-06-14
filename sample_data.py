@@ -7,14 +7,11 @@ def random_uneven_times(N, n_min, n_max, t_max):
             for i in range(N)]
 
 
-def noisy_sin(_times, A, sigma, w):
-    phi = 2 * np.pi * np.random.random()
-    b = np.random.normal(scale=1)
-    return (A * np.sin(2 * np.pi * w * _times + phi) 
-            + np.random.normal(scale=sigma, size=len(_times)) + b)
 
 
-def periodic(N, n_min, n_max, t_max=None, even=True, A=1., sigma=1., w_min=0.01, w_max=1.):
+def periodic(N, n_min, n_max, t_max=None, even=True, A_shape=1., noise_sigma=1., w_min=0.01,
+             w_max=1.):
+    """Returns (values, (frequency, amplitude, phase, offset))"""
     if t_max is None:
         t_max = float(n_max)
 
@@ -22,11 +19,17 @@ def periodic(N, n_min, n_max, t_max=None, even=True, A=1., sigma=1., w_min=0.01,
         t = [np.linspace(0., t_max, n_max) for i in range(N)]
     else:
         t = random_uneven_times(N, n_min, n_max, t_max)
-    w = np.random.uniform(w_min, w_max, N)
-    X = pad_sequences([np.c_[t[i], noisy_sin(t[i], A, sigma, w[i])] for i in range(N)],
-                      maxlen=n_max, value=0., dtype='float')
+    w = np.random.uniform(w_min, w_max, size=N)
+    A = np.random.gamma(shape=A_shape, scale=1. / A_shape, size=N)
+    phi = 2 * np.pi * np.random.random(size=N)
+    b = np.random.normal(scale=1, size=N)
+    X_list = [np.c_[t[i], A[i] * np.sin(2 * np.pi * w[i] * t[i] + phi[i]) 
+                    + np.random.normal(scale=noise_sigma, size=len(t[i])) + b[i]]
+              for i in range(N)]
+    X = pad_sequences(X_list, maxlen=n_max, value=0., dtype='float')
+    Y = np.c_[w, A, phi, b]
     
-    return X, w
+    return X, Y 
 
 
 def synthetic_control(N, n_min, n_max, t_max=None, even=True, sigma=2.):
