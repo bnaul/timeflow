@@ -57,6 +57,7 @@ def even_sin_sinusoid(input_len, n_step, size, num_layers, drop_frac, **kwargs):
 
 if __name__ == '__main__':
     import argparse
+    import os
     import numpy as np
     from keras import backend as K
 
@@ -64,7 +65,7 @@ if __name__ == '__main__':
     import keras_util as ku
 
     np.random.seed(0)
-    SIM_TYPE = 'period_inverse'
+    SIM_TYPE = os.path.splitext(os.path.basename(__file))[0]
     N_train = 50000; N_test = 1000
     N = N_train + N_test
     train = np.arange(N_train); test = np.arange(N_test) + N_train
