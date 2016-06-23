@@ -1,6 +1,7 @@
-from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
+from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU, SimpleRNN,
                           Dropout, merge, Reshape, Flatten, RepeatVector)
 from keras.models import Model, Sequential
+from keras.initializations import normal, identity
 
 
 def even_lstm_sinusoid(input_len, n_step, size, num_layers, drop_frac, **kwargs):
@@ -25,6 +26,35 @@ def even_gru_sinusoid(input_len, n_step, size, num_layers, drop_frac, **kwargs):
     return model
 
 
+def even_relu_sinusoid(input_len, n_step, size, num_layers, drop_frac, **kwargs):
+    model = Sequential()
+    model.add(RepeatVector(n_step, input_shape=(input_len,)))
+    model.add(SimpleRNN(size, return_sequences=True, init=lambda shape, name:
+                        normal(shape, scale=0.001, name=name), inner_init=lambda shape,
+                        name: identity(shape, scale=1.0, name=name), activation='relu'))
+    for i in range(1, num_layers):
+        model.add(Dropout(drop_frac))
+        model.add(SimpleRNN(size, return_sequences=True, init=lambda shape, name:
+                            normal(shape, scale=0.001, name=name), inner_init=lambda
+                            shape, name: identity(shape, scale=1.0,
+                                                  name=name), activation='relu'))
+    model.add(TimeDistributed(Dense(1)))
+    return model
+
+
+def even_sin_sinusoid(input_len, n_step, size, num_layers, drop_frac, **kwargs):
+    model = Sequential()
+    model.add(RepeatVector(n_step, input_shape=(input_len,)))
+    model.add(TimeDistributed(Dense(1)))
+    model.add(SimpleRNN(size, return_sequences=True, activation=K.sin))
+    for i in range(1, num_layers):
+        model.add(Dropout(drop_frac))
+        model.add(TimeDistributed(Dense(1)))
+        model.add(SimpleRNN(size, return_sequences=True, activation=K.sin))
+    model.add(TimeDistributed(Dense(1)))
+    return model
+
+
 if __name__ == '__main__':
     import argparse
     import numpy as np
@@ -44,7 +74,8 @@ if __name__ == '__main__':
                                 w_max=1.)
     X = X[:, :, 1:2]
 
-    model_dict = {'lstm': even_lstm_sinusoid, 'gru': even_gru_sinusoid}
+    model_dict = {'lstm': even_lstm_sinusoid, 'gru': even_gru_sinusoid,
+                  'relu': even_relu_sinusoid, 'sin': even_sin_sinusoid}
 
     parser = argparse.ArgumentParser()
     parser.add_argument("size", type=int)
