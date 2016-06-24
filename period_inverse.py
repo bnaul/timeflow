@@ -65,7 +65,7 @@ if __name__ == '__main__':
     import keras_util as ku
 
     np.random.seed(0)
-    SIM_TYPE = os.path.splitext(os.path.basename(__file))[0]
+    SIM_TYPE = os.path.splitext(os.path.basename(__file__))[0]
     N_train = 50000; N_test = 1000
     N = N_train + N_test
     train = np.arange(N_train); test = np.arange(N_test) + N_train

@@ -39,20 +39,6 @@ if __name__ == '__main__':
     import sample_data
     import keras_util as ku
 
-    np.random.seed(0)
-    SIM_TYPE = os.path.splitext(os.path.basename(__file__))[0]
-    N_train = 50000; N_test = 1000
-    N = N_train + N_test
-    train = np.arange(N_train); test = np.arange(N_test) + N_train
-    n_min = 250; n_max = 250
-    X, Y = sample_data.periodic(N, n_min, n_max, t_max=2*np.pi, even=True,
-                                A_shape=5., noise_sigma=2e-9, w_min=0.1,
-                                w_max=1.)
-    X = X[:, :, 1:2]
-
-    model_dict = {'lstm': even_lstm_period_estimator, 'gru': even_gru_period_estimator}
-#                  'relu': even_relu_period_estimator, 'sin': even_sin_period_estimator}
-
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("size", type=int)
@@ -65,7 +51,22 @@ if __name__ == '__main__':
     parser.add_argument("--model_type", type=str, default='lstm')
     parser.add_argument("--gpu_frac", type=float, default=0.31)
     parser.add_argument("--gpu_id", type=int, default=0)
+    parser.add_argument("--sigma", type=float, default=2e-9)
     args = parser.parse_args()
+
+    np.random.seed(0)
+    SIM_TYPE = os.path.splitext(os.path.basename(__file__))[0]
+    N_train = 50000; N_test = 1000
+    N = N_train + N_test
+    train = np.arange(N_train); test = np.arange(N_test) + N_train
+    n_min = 250; n_max = 250
+    X, Y = sample_data.periodic(N, n_min, n_max, t_max=2*np.pi, even=True,
+                                A_shape=5., noise_sigma=args.sigma, w_min=0.1,
+                                w_max=1.)
+    X = X[:, :, 1:2]
+
+    model_dict = {'lstm': even_lstm_period_estimator, 'gru': even_gru_period_estimator}
+#                  'relu': even_relu_period_estimator, 'sin': even_sin_period_estimator}
 
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
     model = model_dict[args.model_type](output_len=Y.shape[-1], n_step=n_max,
