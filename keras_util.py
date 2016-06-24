@@ -17,9 +17,10 @@ def limited_memory_session(gpu_frac, gpu_id):
 
 
 def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
-                  **kwargs):
+                  metrics=[], **kwargs):
     adam = Adam(lr=lr)
-    model.compile(optimizer=adam, loss=loss, metrics=[])
+    print(metrics)
+    model.compile(optimizer=adam, loss=loss, metrics=metrics)
 
     log_dir = os.path.join(os.getcwd(), 'keras_logs', sim_type, run)
     print(log_dir)
