@@ -1,7 +1,8 @@
 import numpy as np
 from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
-                          Dropout, merge, Reshape, Flatten, RepeatVector)
+                          Dropout, merge, Reshape, Flatten, RepeatVector,
+                          Conv1D, MaxPooling1D)
 from keras.models import Model, Sequential
 
 import sample_data
@@ -28,6 +29,21 @@ def even_gru_classifier(output_len, n_step, size, num_layers, drop_frac, **kwarg
     for i in range(1, num_layers):
         model.add(GRU(size, return_sequences=(i != num_layers - 1)))
         model.add(Dropout(drop_frac))
+    model.add(Dense(output_len, activation='softmax'))
+    return model
+
+
+def even_conv_classifier(output_len, n_step, size, num_layers, drop_frac, **kwargs):
+    model = Sequential()
+    model.add(Conv1D(size, 5, activation='relu', input_shape=(n_max, 1)))
+    model.add(MaxPooling1D(5))
+    model.add(Dropout(drop_frac))
+    for i in range(1, num_layers):
+        model.add(Conv1D(size, 5, activation='relu', input_shape=(n_max, 1)))
+        model.add(MaxPooling1D(5))
+        model.add(Dropout(drop_frac))
+    model.add(Flatten())
+    model.add(Dense(size, activation='relu'))
     model.add(Dense(output_len, activation='softmax'))
     return model
 
@@ -76,7 +92,8 @@ if __name__ == '__main__':
     Y = to_categorical(np.row_stack((np.zeros((int(N / 2), 1), dtype=int),
                                      np.ones((int(N / 2), 1), dtype=int))), 2)
 
-    model_dict = {'lstm': even_lstm_classifier, 'gru': even_gru_classifier}
+    model_dict = {'lstm': even_lstm_classifier, 'gru': even_gru_classifier,
+                  'conv': even_conv_classifier}
 
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
     model = model_dict[args.model_type](output_len=Y.shape[-1], n_step=n_max,
