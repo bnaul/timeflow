@@ -33,12 +33,14 @@ def even_gru_period_estimator(output_len, n_step, size, num_layers, drop_frac, *
 
 def even_conv_period_estimator(output_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
-    model.add(Conv1D(size, 5, activation='relu', input_shape=(n_max, 1)))
-    model.add(MaxPooling1D(5))
+    model.add(Conv1D(size, kwargs['filter'], activation='relu',
+                     input_shape=(n_max, 1)))
+#    model.add(MaxPooling1D(5))
     model.add(Dropout(drop_frac))
     for i in range(1, num_layers):
-        model.add(Conv1D(size, 5, activation='relu', input_shape=(n_max, 1)))
-        model.add(MaxPooling1D(5))
+        model.add(Conv1D(size, kwargs['filter'], activation='relu',
+                         input_shape=(n_max, 1)))
+#        model.add(MaxPooling1D(5))
         model.add(Dropout(drop_frac))
     model.add(Flatten())
     model.add(Dense(size, activation='relu'))
@@ -69,6 +71,7 @@ if __name__ == '__main__':
     parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--sigma", type=float, default=2e-9)
     parser.add_argument("--sim_type", type=str, default='period')
+    parser.add_argument("--filter", type=int, default=5)
     args = parser.parse_args()
 
     np.random.seed(0)
@@ -92,4 +95,6 @@ if __name__ == '__main__':
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(args.model_type, args.size,
                                                 args.num_layers, args.lr,
                                                 int(100 * args.drop_frac)).replace('e-', 'm')
+    if 'conv' in run:
+        run += '_f{}'.format(args.filter)
     history = ku.train_and_log(X[train], Y[train], run, model, **vars(args))
