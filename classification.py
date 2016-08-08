@@ -11,7 +11,7 @@ import keras_util as ku
 
 def even_lstm_classifier(output_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
-    model.add(LSTM(size, input_shape=(n_max, 1),
+    model.add(LSTM(size, input_shape=(n_step, 1),
                    return_sequences=(num_layers > 1)))
     model.add(Dropout(drop_frac))
     for i in range(1, num_layers):
@@ -23,7 +23,7 @@ def even_lstm_classifier(output_len, n_step, size, num_layers, drop_frac, **kwar
 
 def even_gru_classifier(output_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
-    model.add(GRU(size, input_shape=(n_max, 1),
+    model.add(GRU(size, input_shape=(n_step, 1),
                    return_sequences=(num_layers > 1)))
     model.add(Dropout(drop_frac))
     for i in range(1, num_layers):
@@ -35,11 +35,11 @@ def even_gru_classifier(output_len, n_step, size, num_layers, drop_frac, **kwarg
 
 def even_conv_classifier(output_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
-    model.add(Conv1D(size, 5, activation='relu', input_shape=(n_max, 1)))
+    model.add(Conv1D(size, 5, activation='relu', input_shape=(n_step, 1)))
     model.add(MaxPooling1D(5))
     model.add(Dropout(drop_frac))
     for i in range(1, num_layers):
-        model.add(Conv1D(size, 5, activation='relu', input_shape=(n_max, 1)))
+        model.add(Conv1D(size, 5, activation='relu', input_shape=(n_step, 1)))
         model.add(MaxPooling1D(5))
         model.add(Dropout(drop_frac))
     model.add(Flatten())
