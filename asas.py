@@ -8,28 +8,6 @@ import sample_data
 import keras_util as ku
 
 
-def uneven_lstm_classifier(output_len, n_step, size, num_layers, drop_frac, **kwargs):
-    model = Sequential()
-    model.add(LSTM(size, input_shape=(n_max, 3), # with errors
-                   return_sequences=(num_layers > 1)))
-    for i in range(1, num_layers):
-        model.add(Dropout(drop_frac))
-        model.add(LSTM(size, return_sequences=(i != num_layers - 1)))
-    model.add(Dense(output_len, activation='softmax'))
-    return model
-
-
-def uneven_gru_classifier(output_len, n_step, size, num_layers, drop_frac, **kwargs):
-    model = Sequential()
-    model.add(GRU(size, input_shape=(n_max, 3), # with errors
-                   return_sequences=(num_layers > 1)))
-    for i in range(1, num_layers):
-        model.add(Dropout(drop_frac))
-        model.add(GRU(size, return_sequences=(i != num_layers - 1)))
-    model.add(Dense(output_len, activation='softmax'))
-    return model
-
-
 if __name__ == '__main__':
     import argparse
     import os
@@ -56,18 +34,18 @@ if __name__ == '__main__':
     parser.add_argument("--metrics", nargs='+', default=['accuracy'])
     args = parser.parse_args()
 
-    from cesium.datasets.asas_training import fetch_asas_training
     from keras.utils.np_utils import to_categorical
     from keras.preprocessing.sequence import pad_sequences
+    from classification import even_gru_classifier as gru
+    from classification import even_conv_classifier as conv
+
     np.random.seed(0)
-    data = fetch_asas_training()
     X_list = [np.c_[data['times'][i], data['measurements'][i],
                     data['errors'][i]] for i in range(len(data['times']))]
     n_max = max(len(t) for t in data['times'])
     X = pad_sequences(X_list, maxlen=n_max, value=-1., dtype='float')
     classnames, indices = np.unique(data['classes'], return_inverse=True)
     Y = to_categorical(indices, len(classnames))
-    
 
     model_dict = {'gru': uneven_gru_classifier, 'lstm': uneven_lstm_classifier}
 

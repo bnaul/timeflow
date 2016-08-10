@@ -11,7 +11,7 @@ import keras_util as ku
 
 def even_dense_classifier(output_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
-    model.add(Dense(size, input_shape=(n_step, 1), activation='relu')
+    model.add(Dense(size, input_shape=(n_step,), activation='relu'))
     model.add(Dropout(drop_frac))
     for i in range(1, num_layers):
         model.add(Dense(size, activation='relu'))
