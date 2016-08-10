@@ -9,6 +9,17 @@ import sample_data
 import keras_util as ku
 
 
+def even_dense_classifier(output_len, n_step, size, num_layers, drop_frac, **kwargs):
+    model = Sequential()
+    model.add(Dense(size, input_shape=(n_step, 1), activation='relu')
+    model.add(Dropout(drop_frac))
+    for i in range(1, num_layers):
+        model.add(Dense(size, activation='relu'))
+        model.add(Dropout(drop_frac))
+    model.add(Dense(output_len, activation='softmax'))
+    return model
+
+
 def even_lstm_classifier(output_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
     model.add(LSTM(size, input_shape=(n_step, 1),
@@ -35,12 +46,12 @@ def even_gru_classifier(output_len, n_step, size, num_layers, drop_frac, **kwarg
 
 def even_conv_classifier(output_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
-    model.add(Conv1D(size, 5, activation='relu', input_shape=(n_step, 1)))
-    model.add(MaxPooling1D(5))
+    model.add(Conv1D(size, kwargs['filter'], activation='relu', input_shape=(n_step, 1)))
+#    model.add(MaxPooling1D(5))
     model.add(Dropout(drop_frac))
     for i in range(1, num_layers):
-        model.add(Conv1D(size, 5, activation='relu', input_shape=(n_step, 1)))
-        model.add(MaxPooling1D(5))
+        model.add(Conv1D(size, kwargs['filter'], activation='relu', input_shape=(n_step, 1)))
+#        model.add(MaxPooling1D(5))
         model.add(Dropout(drop_frac))
     model.add(Flatten())
     model.add(Dense(size, activation='relu'))
@@ -73,6 +84,7 @@ if __name__ == '__main__':
     parser.add_argument("--sigma", type=float, default=2e-9)
     parser.add_argument("--sim_type", type=str, default='classification')
     parser.add_argument("--metrics", nargs='+', default=['accuracy'])
+    parser.add_argument("--filter", type=int, default=5)
     args = parser.parse_args()
 
     np.random.seed(0)
@@ -102,4 +114,6 @@ if __name__ == '__main__':
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(args.model_type, args.size,
                                                 args.num_layers, args.lr,
                                                 int(100 * args.drop_frac)).replace('e-', 'm')
+    if 'conv' in run:
+        run += '_f{}'.format(args.filter)
     history = ku.train_and_log(X[train], Y[train], run, model, **vars(args))
