@@ -20,17 +20,17 @@ from classification import even_conv_classifier as conv
 #from classification import even_dense_classifier as dense
 
 # TODO remove
-n_min = 1000
+n_min = 10000
 print("n_min: ".format(n_min))
 
-K.set_session(ku.limited_memory_session(0.48, 0))
+K.set_session(ku.limited_memory_session(0.48, 1))
 X_trunc = pad_sequences(X_full, maxlen=n_min, dtype='float32', value=-1., padding='post', truncating='post')
 X = np.expand_dims(X_trunc, axis=2)
 size = 64
 num_layers = 1
 drop_frac = 0.25
 lr = 2e-3
-sim_type = 'deepheart_gru'
+sim_type = 'deepheart_gru{}'.format(n_min)
 model = gru(output_len=Y.shape[1], n_step=n_min, size=size, num_layers=num_layers, drop_frac=drop_frac)
 #sim_type = 'deepheart_dense'
 #model = dense(output_len=Y.shape[1], n_step=n_min, size=size, num_layers=num_layers, drop_frac=drop_frac)
