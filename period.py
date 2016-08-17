@@ -11,7 +11,7 @@ import keras_util as ku
 
 def even_lstm_period_estimator(output_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
-    model.add(LSTM(size, input_shape=(n_max, 1),
+    model.add(LSTM(size, input_shape=(n_step, 1),
                    return_sequences=(num_layers > 1)))
     for i in range(1, num_layers):
         model.add(Dropout(drop_frac))
@@ -22,7 +22,7 @@ def even_lstm_period_estimator(output_len, n_step, size, num_layers, drop_frac, 
 
 def even_gru_period_estimator(output_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
-    model.add(GRU(size, input_shape=(n_max, 1),
+    model.add(GRU(size, input_shape=(n_step, 1),
                    return_sequences=(num_layers > 1)))
     for i in range(1, num_layers):
         model.add(Dropout(drop_frac))
@@ -34,12 +34,12 @@ def even_gru_period_estimator(output_len, n_step, size, num_layers, drop_frac, *
 def even_conv_period_estimator(output_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
     model.add(Conv1D(size, kwargs['filter'], activation='relu',
-                     input_shape=(n_max, 1)))
+                     input_shape=(n_step, 1)))
 #    model.add(MaxPooling1D(5))
     model.add(Dropout(drop_frac))
     for i in range(1, num_layers):
         model.add(Conv1D(size, kwargs['filter'], activation='relu',
-                         input_shape=(n_max, 1)))
+                         input_shape=(n_step, 1)))
 #        model.add(MaxPooling1D(5))
         model.add(Dropout(drop_frac))
     model.add(Flatten())
@@ -72,14 +72,16 @@ if __name__ == '__main__':
     parser.add_argument("--sigma", type=float, default=2e-9)
     parser.add_argument("--sim_type", type=str, default='period')
     parser.add_argument("--filter", type=int, default=5)
+    parser.add_argument("--N_train", type=int, default=50000)
+    parser.add_argument("--N_test", type=int, default=1000)
+    parser.add_argument("--n_min", type=int, default=250)
+    parser.add_argument("--n_max", type=int, default=250)
     args = parser.parse_args()
 
     np.random.seed(0)
-    N_train = 50000; N_test = 1000
-    N = N_train + N_test
-    train = np.arange(N_train); test = np.arange(N_test) + N_train
-    n_min = 250; n_max = 250
-    X, Y = sample_data.periodic(N, n_min, n_max, t_max=2*np.pi, even=True,
+    N = args.N_train + args.N_test
+    train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
+    X, Y = sample_data.periodic(N, args.n_min, args.n_max, t_max=2*np.pi, even=True,
                                 A_shape=5., noise_sigma=args.sigma, w_min=0.1,
                                 w_max=1.)
     X = X[:, :, 1:2]
@@ -89,7 +91,7 @@ if __name__ == '__main__':
                   'conv': even_conv_period_estimator}
 
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
-    model = model_dict[args.model_type](output_len=Y.shape[-1], n_step=n_max,
+    model = model_dict[args.model_type](output_len=Y.shape[-1], n_step=args.n_max,
                                         **vars(args))
 
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(args.model_type, args.size,
