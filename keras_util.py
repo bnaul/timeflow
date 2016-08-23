@@ -25,6 +25,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
     log_dir = os.path.join(os.getcwd(), 'keras_logs', sim_type, run)
     print(log_dir)
     if os.path.exists(os.path.join(log_dir, 'weights.h5')):
+        print("Loading {}...".format(os.path.join(log_dir, 'weights.h5')))
         history = []
         model.load_weights(os.path.join(log_dir, 'weights.h5'))
     else:
