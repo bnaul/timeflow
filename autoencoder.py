@@ -65,7 +65,7 @@ if __name__ == '__main__':
     parser.add_argument("--gpu_frac", type=float, default=0.31)
     parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--sigma", type=float, default=2e-9)
-    parser.add_argument("--sim_type", type=str, default='period')
+    parser.add_argument("--sim_type", type=str, default='autoencoder')
     parser.add_argument("--filter", type=int, default=5)
     parser.add_argument("--N_train", type=int, default=50000)
     parser.add_argument("--N_test", type=int, default=1000)
