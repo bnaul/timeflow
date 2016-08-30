@@ -4,29 +4,29 @@ from keras.models import Model, Sequential
 from keras.initializations import normal, identity
 
 
-def even_lstm_sinusoid(input_len, output_len, n_step, size, num_layers, drop_frac, **kwargs):
+def even_lstm_sinusoid(input_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
     model.add(RepeatVector(n_step, input_shape=(input_len,)))
     model.add(LSTM(size, return_sequences=True))
     for i in range(1, num_layers):
         model.add(Dropout(drop_frac))
         model.add(LSTM(size, return_sequences=True))
-    model.add(TimeDistributed(Dense(output_len)))
+    model.add(TimeDistributed(Dense(1)))
     return model
 
 
-def even_gru_sinusoid(input_len, output_len, n_step, size, num_layers, drop_frac, **kwargs):
+def even_gru_sinusoid(input_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
     model.add(RepeatVector(n_step, input_shape=(input_len,)))
     model.add(GRU(size, return_sequences=True))
     for i in range(1, num_layers):
         model.add(Dropout(drop_frac))
         model.add(GRU(size, return_sequences=True))
-    model.add(TimeDistributed(Dense(output_len)))
+    model.add(TimeDistributed(Dense(1)))
     return model
 
 
-def even_relu_sinusoid(input_len, output_len, n_step, size, num_layers, drop_frac, **kwargs):
+def even_relu_sinusoid(input_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
     model.add(RepeatVector(n_step, input_shape=(input_len,)))
     model.add(SimpleRNN(size, return_sequences=True, init=lambda shape, name:
@@ -38,20 +38,36 @@ def even_relu_sinusoid(input_len, output_len, n_step, size, num_layers, drop_fra
                             normal(shape, scale=0.001, name=name), inner_init=lambda
                             shape, name: identity(shape, scale=1.0,
                                                   name=name), activation='relu'))
-    model.add(TimeDistributed(Dense(output_len)))
+    model.add(TimeDistributed(Dense(1)))
     return model
 
 
-def even_sin_sinusoid(input_len, output_len, n_step, size, num_layers, drop_frac, **kwargs):
+def even_sin_sinusoid(input_len, n_step, size, num_layers, drop_frac, **kwargs):
     model = Sequential()
     model.add(RepeatVector(n_step, input_shape=(input_len,)))
-    model.add(TimeDistributed(Dense(output_len)))
+    model.add(TimeDistributed(Dense(1)))
     model.add(SimpleRNN(size, return_sequences=True, activation=K.sin))
     for i in range(1, num_layers):
         model.add(Dropout(drop_frac))
-        model.add(TimeDistributed(Dense(output_len)))
+        model.add(TimeDistributed(Dense(1)))
         model.add(SimpleRNN(size, return_sequences=True, activation=K.sin))
-    model.add(TimeDistributed(Dense(output_len)))
+    model.add(TimeDistributed(Dense(1)))
+    return model
+
+
+def uneven_gru_sinusoid(input_len, n_step, size, num_layers, drop_frac, **kwargs):
+    time_input = Input(shape=(n_step, 1), name='time')
+    param_input = Input(shape=(input_len,), name='param')
+    tiled = RepeatVector(n_step)(param_input)
+    merged = merge([time_input, tiled], mode='concat')
+    out_gru = [merged] + [None] * (num_layers) 
+    drop_out = [None] * (num_layers + 1)
+    for i in range(1, num_layers + 1):
+        out_gru[i] = GRU(size, return_sequences=True)(out_gru[i - 1])
+        drop_out[i] = Dropout(drop_frac)(out_gru[i])
+    out_relu = TimeDistributed(Dense(1, activation='relu'))(drop_out[-1])
+    out_lin = TimeDistributed(Dense(1, activation='linear'))(out_relu)
+    model = Model(input=[time_input, param_input], output=out_lin)
     return model
 
 
@@ -83,7 +99,9 @@ if __name__ == '__main__':
     parser.add_argument("--N_test", type=int, default=1000)
     parser.add_argument("--n_min", type=int, default=250)
     parser.add_argument("--n_max", type=int, default=250)
-    parser.add_argument("--even", type=bool, default=True)
+    parser.add_argument('--even', dest='even', action='store_true')
+    parser.add_argument('--uneven', dest='even', action='store_false')
+    parser.set_defaults(even=True)
     args = parser.parse_args()
 
     np.random.seed(0)
@@ -93,16 +111,17 @@ if __name__ == '__main__':
                                 even=args.even, A_shape=5.,
                                 noise_sigma=args.sigma, w_min=0.1, w_max=1.)
     if args.even:
-        X = X[:, :, 1:2]
-
-    model_dict = {'lstm': even_lstm_sinusoid, 'gru': even_gru_sinusoid,
-#                  'relu': even_relu_sinusoid, 'sin': even_sin_sinusoid
-#                  'conv': even_conv_sinusoid,
-                 }
+        model_dict = {'lstm': even_lstm_sinusoid, 'gru': even_gru_sinusoid,
+                      'relu': even_relu_sinusoid, 'sin': even_sin_sinusoid,
+#                      'conv': even_conv_sinusoid,
+                     }
+        model_input = Y[train]
+    else:
+        model_dict = {'gru': uneven_gru_sinusoid}
+        model_input = {'time': X[train, :, 0:1], 'param': Y[train]}
 
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
-    model = model_dict[args.model_type](output_len=X.shape[-1],
-                                        input_len=Y.shape[-1],
+    model = model_dict[args.model_type](input_len=Y.shape[-1],
                                         n_step=args.n_max, **vars(args))
 
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(args.model_type, args.size,
@@ -110,4 +129,5 @@ if __name__ == '__main__':
                                                 int(100 * args.drop_frac)).replace('e-', 'm')
     if 'conv' in run:
         run += '_f{}'.format(args.filter)
-    history = ku.train_and_log(Y[train], X[train], run, model, **vars(args))
+
+    history = ku.train_and_log(model_input, X[train, :, 1:2], run, model, **vars(args))

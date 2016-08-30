@@ -71,6 +71,9 @@ if __name__ == '__main__':
     parser.add_argument("--N_test", type=int, default=1000)
     parser.add_argument("--n_min", type=int, default=250)
     parser.add_argument("--n_max", type=int, default=250)
+    parser.add_argument('--even', dest='even', action='store_true')
+    parser.add_argument('--uneven', dest='even', action='store_false')
+    parser.set_defaults(even=True)
     args = parser.parse_args()
 
     np.random.seed(0)
