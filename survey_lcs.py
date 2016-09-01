@@ -48,7 +48,6 @@ if __name__ == '__main__':
     if 'conv' in run:
         run += '_f{}'.format(args.filter)
 
+    sample_weight = (X[:, :, -1] != -1.)
     history = ku.train_and_log({'main_input': X, 'aux_input': X[:, :, [0, 2]]}, X[:, :, 1:2],
-                               run, model, lr=args.lr, nb_epoch=args.nb_epoch,
-                               batch_size=args.batch_size, loss=args.loss,
-                               sim_type=args.sim_type)
+                               run, model, sample_weight=sample_weight, **vars(args))

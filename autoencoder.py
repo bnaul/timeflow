@@ -109,4 +109,6 @@ if __name__ == '__main__':
                                                 int(100 * args.drop_frac)).replace('e-', 'm')
     if 'conv' in run:
         run += '_f{}'.format(args.filter)
-    history = ku.train_and_log(X[train], X[train], run, model, **vars(args))
+    sample_weight = (X[:, :, -1] != -1.)
+    history = ku.train_and_log(X[train], X[train], run, model,
+			       sample_weight=sample_weight, **vars(args))
