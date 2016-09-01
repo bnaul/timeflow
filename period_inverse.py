@@ -1,3 +1,4 @@
+import tensorflow as tf
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU, SimpleRNN,
                           Dropout, merge, Reshape, Flatten, RepeatVector)
 from keras.models import Model, Sequential

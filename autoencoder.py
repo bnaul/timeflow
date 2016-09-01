@@ -8,8 +8,8 @@ from keras.models import Model, Sequential
 import sample_data
 import keras_util as ku
 
-
-def even_gru_autoencoder(output_len, n_step, size, num_layers, drop_frac, corruption=0.0, **kwargs):
+# TODO additive noise (corruption)?
+def even_gru_autoencoder(output_len, n_step, size, num_layers, drop_frac, **kwargs):
     main_input = Input(shape=(n_step, output_len))
     encode = [main_input] + [None] * num_layers
     drop_in = [None] * (num_layers + 1)
@@ -30,17 +30,30 @@ def even_gru_autoencoder(output_len, n_step, size, num_layers, drop_frac, corrup
     return model
 
 
-#def even_gru_autoencoder(output_len, n_step, size, num_layers, drop_frac, corruption=0.0, **kwargs):
-#    main_input = Input(shape=(n_step, output_len))
-#    encode = GRU(size, return_sequences=False)(main_input)
-#    dropout_in = Dropout(drop_frac)(encode)
-#    tiled = RepeatVector(n_step)(dropout_in)
-#    decode = GRU(size, return_sequences=True)(tiled)
-#    dropout_out = Dropout(drop_frac)(decode)
-#    output_relu = TimeDistributed(Dense(output_len, activation='relu'))(dropout_out)
-#    output = TimeDistributed(Dense(output_len, activation='linear'))(output_relu)
-#    model = Model(input=main_input, output=output)
-#    return model
+# input: (t, m, e) or (t, m)
+# aux input: (t) or (t, e)
+# output: just m (output_len==1)
+def uneven_gru_autoencoder(input_len, aux_input_len, n_step, size, num_layers, drop_frac, **kwargs):
+    output_len = 1
+
+    main_input = Input(shape=(n_step, input_len), name='main_input')
+    encode = [main_input] + [None] * num_layers
+    drop_in = [None] * (num_layers + 1)
+    for i in range(1, num_layers + 1):
+        encode[i] = GRU(size, return_sequences=(i != num_layers))(encode[i - 1])
+        drop_in[i] = Dropout(drop_frac)(encode[i])
+    tiled = RepeatVector(n_step)(encode[-1])
+    aux_input = Input(shape=(n_step, aux_input_len), name='aux_input')
+    merged = merge([aux_input, tiled], mode='concat')
+    decode = [merged] + [None] * num_layers
+    drop_out = [None] * (num_layers + 1)
+    for i in range(1, num_layers + 1):
+        decode[i] = GRU(size, return_sequences=True)(decode[i - 1])
+        drop_out[i] = Dropout(drop_frac)(decode[i])
+    out_relu = TimeDistributed(Dense(output_len, activation='relu'))(drop_out[-1])
+    out_lin = TimeDistributed(Dense(output_len, activation='linear'))(out_relu)
+    model = Model(input=[main_input, aux_input], output=out_lin)
+    return model
 
 
 if __name__ == '__main__':
