@@ -91,24 +91,33 @@ if __name__ == '__main__':
 
     np.random.seed(0)
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
-    args.n_min = 250; args.n_max = 250
     X, Y = sample_data.periodic(args.N_train + args.N_test, args.n_min,
-                                args.n_max, t_max=2*np.pi, even=True,
+                                args.n_max, t_max=2*np.pi, even=args.even,
                                 A_shape=5., noise_sigma=args.sigma, w_min=0.1,
                                 w_max=1.)
-    X = X[:, :, 1:2]
+    if args.even:
+        model_dict = {'gru': even_gru_autoencoder}
+        X = X[:, :, 1:2]
+    else:
+        model_dict = {'gru': uneven_gru_autoencoder}
 
-    model_dict = {'gru': even_gru_autoencoder}
 
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
-    model = model_dict[args.model_type](output_len=X.shape[-1], n_step=args.n_max,
-                                        **vars(args))
+    model = model_dict[args.model_type](input_len=X.shape[-1], aux_input_len=X.shape[-1] - 1,
+                                        n_step=X.shape[1], size=args.size,
+                                        num_layers=args.num_layers,
+                                        drop_frac=args.drop_frac)
 
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(args.model_type, args.size,
                                                 args.num_layers, args.lr,
                                                 int(100 * args.drop_frac)).replace('e-', 'm')
     if 'conv' in run:
         run += '_f{}'.format(args.filter)
-    sample_weight = (X[:, :, -1] != -1.)
-    history = ku.train_and_log(X[train], X[train], run, model,
-			       sample_weight=sample_weight, **vars(args))
+
+    sample_weight = (X[train, :, -1] != -1.)
+    if args.even:
+        history = ku.train_and_log(X[train], X[train], run, model, **vars(args))
+    else:
+        history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
+                                   X[train, :, 1:2], run, model, sample_weight=sample_weight,
+                                   **vars(args))
