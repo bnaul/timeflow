@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     model_dict = {'gru': uneven_gru_autoencoder}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
-    X = pad_sequences(X_list, value=-1., dtype='float')
+    X = pad_sequences(X_list, value=0., dtype='float')
     model = model_dict[args.model_type](input_len=X.shape[-1], aux_input_len=2,
                                         n_step=X.shape[1], size=args.size,
                                         num_layers=args.num_layers,
@@ -48,6 +48,6 @@ if __name__ == '__main__':
     if 'conv' in run:
         run += '_f{}'.format(args.filter)
 
-    sample_weight = (X[:, :, -1] != -1.)
+    sample_weight = (X[:, :, -1] != 0.)
     history = ku.train_and_log({'main_input': X, 'aux_input': X[:, :, [0, 2]]}, X[:, :, 1:2],
                                run, model, sample_weight=sample_weight, **vars(args))
