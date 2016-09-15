@@ -2,7 +2,7 @@ import numpy as np
 from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
-                          Conv1D, MaxPooling1D)
+                          Conv1D, AtrousConv1D, MaxPooling1D)
 from keras.models import Model, Sequential
 
 import sample_data
@@ -41,6 +41,28 @@ def conv_period_estimator(output_len, input_size, n_step, size, num_layers, drop
         model.add(Conv1D(size, kwargs['filter'], activation='relu',
                          input_shape=(n_step, input_size)))
 #        model.add(MaxPooling1D(5))
+        model.add(Dropout(drop_frac))
+    model.add(Flatten())
+    model.add(Dense(size, activation='relu'))
+    model.add(Dense(output_len, activation='linear'))
+    return model
+
+
+def atrous_period_estimator(output_len, input_size, n_step, size, num_layers, drop_frac, **kwargs):
+    model = Sequential()
+    # TODO try tanh * sigmoid activation, other intializations?
+    model.add(AtrousConv1D(size, kwargs['filter'], activation='relu',
+                           input_shape=(n_step, input_size),
+                           border_mode='valid',
+#                           causal=True,
+                           atrous_rate=1))
+    model.add(Dropout(drop_frac))
+    for i in range(1, num_layers):
+        model.add(AtrousConv1D(size, kwargs['filter'], activation='relu',
+                               input_shape=(n_step, input_size),
+                               border_mode='valid',
+#                               causal=True,
+                               atrous_rate=2 ** i))
         model.add(Dropout(drop_frac))
     model.add(Flatten())
     model.add(Dense(size, activation='relu'))
@@ -92,7 +114,7 @@ if __name__ == '__main__':
 
     model_dict = {'lstm': lstm_period_estimator, 'gru': gru_period_estimator,
 #                  'relu': relu_period_estimator, 'sin': sin_period_estimator}
-                  'conv': conv_period_estimator}
+                  'conv': conv_period_estimator, 'atrous': atrous_period_estimator}
 
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
     model = model_dict[args.model_type](output_len=Y.shape[-1],

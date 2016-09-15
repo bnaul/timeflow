@@ -5,7 +5,7 @@ if __name__ == '__main__':
     from keras import backend as K
     from keras.preprocessing.sequence import pad_sequences
     import keras_util as ku
-    from autoencoder import uneven_gru_autoencoder
+    from autoencoder import uneven_gru_autoencoder, uneven_lstm_autoencoder
 
     import argparse
     parser = argparse.ArgumentParser()

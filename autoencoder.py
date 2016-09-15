@@ -56,6 +56,29 @@ def uneven_gru_autoencoder(input_len, aux_input_len, n_step, size, num_layers, d
     return model
 
 
+def uneven_lstm_autoencoder(input_len, aux_input_len, n_step, size, num_layers, drop_frac, **kwargs):
+    output_len = 1
+
+    main_input = Input(shape=(n_step, input_len), name='main_input')
+    encode = [main_input] + [None] * num_layers
+    drop_in = [None] * (num_layers + 1)
+    for i in range(1, num_layers + 1):
+        encode[i] = LSTM(size, return_sequences=(i != num_layers))(encode[i - 1])
+        drop_in[i] = Dropout(drop_frac)(encode[i])
+    tiled = RepeatVector(n_step)(encode[-1])
+    aux_input = Input(shape=(n_step, aux_input_len), name='aux_input')
+    merged = merge([aux_input, tiled], mode='concat')
+    decode = [merged] + [None] * num_layers
+    drop_out = [None] * (num_layers + 1)
+    for i in range(1, num_layers + 1):
+        decode[i] = LSTM(size, return_sequences=True)(decode[i - 1])
+        drop_out[i] = Dropout(drop_frac)(decode[i])
+    out_relu = TimeDistributed(Dense(output_len, activation='relu'))(drop_out[-1])
+    out_lin = TimeDistributed(Dense(output_len, activation='linear'))(out_relu)
+    model = Model(input=[main_input, aux_input], output=out_lin)
+    return model
+
+
 if __name__ == '__main__':
     import argparse
     import os
