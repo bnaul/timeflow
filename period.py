@@ -109,6 +109,7 @@ if __name__ == '__main__':
     X, Y = sample_data.periodic(N, args.n_min, args.n_max, t_max=2*np.pi, even=args.even,
                                 A_shape=5., noise_sigma=args.sigma, w_min=0.1,
                                 w_max=1.)
+    Y[:, 0] **= -1  # period instead of frequency
     if args.even:
         X = X[:, :, 1:2]
 
