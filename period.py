@@ -88,6 +88,7 @@ if __name__ == '__main__':
     parser.add_argument("--nb_epoch", type=int, default=250)
     parser.add_argument("--lr", type=float, default=0.002)
     parser.add_argument("--loss", type=str, default='mse')
+    parser.add_argument("--loss_weights", type=float, nargs='*')
     parser.add_argument("--model_type", type=str, default='lstm')
     parser.add_argument("--gpu_frac", type=float, default=0.31)
     parser.add_argument("--gpu_id", type=int, default=0)
@@ -110,6 +111,8 @@ if __name__ == '__main__':
                                 A_shape=5., noise_sigma=args.sigma, w_min=0.1,
                                 w_max=1.)
     Y[:, 0] **= -1  # period instead of frequency
+    if args.loss_weights:
+        Y *= args.loss_weights
     if args.even:
         X = X[:, :, 1:2]
 
