@@ -21,7 +21,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
     adam = Adam(lr=lr)
     print(metrics)
     model.compile(optimizer=adam, loss=loss, metrics=metrics,
-                  sample_weight_mode='temporal' if sample_weight else None)
+                  sample_weight_mode='temporal' if sample_weight is not None else None)
 
     log_dir = os.path.join(os.getcwd(), 'keras_logs', sim_type, run)
     print(log_dir)
