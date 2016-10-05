@@ -9,7 +9,8 @@ import sample_data
 import keras_util as ku
 
 # TODO additive noise (corruption)?
-def even_gru_autoencoder(output_len, n_step, size, num_layers, drop_frac, **kwargs):
+def even_gru_autoencoder(n_step, size, num_layers, drop_frac, **kwargs):
+    output_len = 1  # TODO generalize?
     main_input = Input(shape=(n_step, output_len))
     encode = [main_input] + [None] * num_layers
     drop_in = [None] * (num_layers + 1)
