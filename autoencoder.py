@@ -31,6 +31,28 @@ def even_gru_autoencoder(n_step, size, num_layers, drop_frac, **kwargs):
     return model
 
 
+def even_lstm_autoencoder(n_step, size, num_layers, drop_frac, **kwargs):
+    output_len = 1  # TODO generalize?
+    main_input = Input(shape=(n_step, output_len))
+    encode = [main_input] + [None] * num_layers
+    drop_in = [None] * (num_layers + 1)
+    for i in range(1, num_layers + 1):
+        encode[i] = LSTM(size, return_sequences=(i != num_layers))(encode[i - 1])
+        drop_in[i] = Dropout(drop_frac)(encode[i])
+    tiled = RepeatVector(n_step)(encode[-1])
+#    aux_input = Input(shape=(n_step, 1), name='aux_input')
+#    decode = merge([aux_input, tiled], mode='concat')
+    decode = [tiled] + [None] * num_layers
+    drop_out = [None] * (num_layers + 1)
+    for i in range(1, num_layers + 1):
+        decode[i] = LSTM(size, return_sequences=True)(decode[i - 1])
+        drop_out[i] = Dropout(drop_frac)(decode[i])
+    out_relu = TimeDistributed(Dense(output_len, activation='relu'))(drop_out[-1])
+    out_lin = TimeDistributed(Dense(output_len, activation='linear'))(out_relu)
+    model = Model(input=main_input, output=out_lin)
+    return model
+
+
 # input: (t, m, e) or (t, m)
 # aux input: (t) or (t, e)
 # output: just m (output_len==1)
@@ -120,10 +142,10 @@ if __name__ == '__main__':
                                 A_shape=5., noise_sigma=args.sigma, w_min=0.1,
                                 w_max=1.)
     if args.even:
-        model_dict = {'gru': even_gru_autoencoder}
+        model_dict = {'gru': even_gru_autoencoder, 'lstm': even_lstm_autoencoder}
         X = X[:, :, 1:2]
     else:
-        model_dict = {'gru': uneven_gru_autoencoder}
+        model_dict = {'gru': uneven_gru_autoencoder, 'lstm': uneven_lstm_autoencoder}
 
 
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
