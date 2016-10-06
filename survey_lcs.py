@@ -34,6 +34,7 @@ if __name__ == '__main__':
     parser.add_argument("--first_N", type=int, default=5000)
     parser.add_argument("--n_min", type=int, default=100)
     parser.add_argument("--m_max", type=int, default=50)
+    parser.add_argument('--embedding', type=int, default=None)
     args = parser.parse_args()
 
     np.random.seed(0)
@@ -52,13 +53,16 @@ if __name__ == '__main__':
     model = model_dict[args.model_type](input_len=X.shape[-1], aux_input_len=2,
                                         n_step=X.shape[1], size=args.size,
                                         num_layers=args.num_layers,
-                                        drop_frac=args.drop_frac)
+                                        drop_frac=args.drop_frac,
+                                        embedding_size=args.embedding)
 
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(args.model_type, args.size,
                                                 args.num_layers, args.lr,
                                                 int(100 * args.drop_frac)).replace('e-', 'm')
     if 'conv' in run:
         run += '_f{}'.format(args.filter)
+    if args.embedding:
+        run += '_emb{}'.format(args.embedding)
 
     sample_weight = (X[:, :, -1] >= 0.)
 

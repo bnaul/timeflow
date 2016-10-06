@@ -9,13 +9,17 @@ import sample_data
 import keras_util as ku
 
 # TODO additive noise (corruption)?
-def even_gru_autoencoder(n_step, size, num_layers, drop_frac, **kwargs):
+def even_gru_autoencoder(n_step, size, num_layers, drop_frac,
+                         embedding_size=None, **kwargs):
     output_len = 1  # TODO generalize?
+    if embedding_size is None:
+        embedding_size = size
     main_input = Input(shape=(n_step, output_len))
     encode = [main_input] + [None] * num_layers
     drop_in = [None] * (num_layers + 1)
     for i in range(1, num_layers + 1):
-        encode[i] = GRU(size, return_sequences=(i != num_layers))(encode[i - 1])
+        encode[i] = GRU(size if i != num_layers else embedding_size,
+                        return_sequences=(i != num_layers))(encode[i - 1])
         drop_in[i] = Dropout(drop_frac)(encode[i])
     tiled = RepeatVector(n_step)(encode[-1])
 #    aux_input = Input(shape=(n_step, 1), name='aux_input')
@@ -31,13 +35,17 @@ def even_gru_autoencoder(n_step, size, num_layers, drop_frac, **kwargs):
     return model
 
 
-def even_lstm_autoencoder(n_step, size, num_layers, drop_frac, **kwargs):
+def even_lstm_autoencoder(n_step, size, num_layers, drop_frac,
+                          embedding_size=None, **kwargs):
     output_len = 1  # TODO generalize?
+    if embedding_size is None:
+        embedding_size = size
     main_input = Input(shape=(n_step, output_len))
     encode = [main_input] + [None] * num_layers
     drop_in = [None] * (num_layers + 1)
     for i in range(1, num_layers + 1):
-        encode[i] = LSTM(size, return_sequences=(i != num_layers))(encode[i - 1])
+        encode[i] = LSTM(size if i != num_layers else embedding_size,
+                         return_sequences=(i != num_layers))(encode[i - 1])
         drop_in[i] = Dropout(drop_frac)(encode[i])
     tiled = RepeatVector(n_step)(encode[-1])
 #    aux_input = Input(shape=(n_step, 1), name='aux_input')
@@ -56,14 +64,17 @@ def even_lstm_autoencoder(n_step, size, num_layers, drop_frac, **kwargs):
 # input: (t, m, e) or (t, m)
 # aux input: (t) or (t, e)
 # output: just m (output_len==1)
-def uneven_gru_autoencoder(input_len, aux_input_len, n_step, size, num_layers, drop_frac, **kwargs):
+def uneven_gru_autoencoder(input_len, aux_input_len, n_step, size, num_layers,
+                           drop_frac, embedding_size=None, **kwargs):
     output_len = 1
-
+    if embedding_size is None:
+        embedding_size = size
     main_input = Input(shape=(n_step, input_len), name='main_input')
     encode = [main_input] + [None] * num_layers
     drop_in = [None] * (num_layers + 1)
     for i in range(1, num_layers + 1):
-        encode[i] = GRU(size, return_sequences=(i != num_layers))(encode[i - 1])
+        encode[i] = GRU(size if i != num_layers else embedding_size,
+                        return_sequences=(i != num_layers))(encode[i - 1])
         drop_in[i] = Dropout(drop_frac)(encode[i])
     tiled = RepeatVector(n_step)(encode[-1])
     aux_input = Input(shape=(n_step, aux_input_len), name='aux_input')
@@ -79,14 +90,17 @@ def uneven_gru_autoencoder(input_len, aux_input_len, n_step, size, num_layers, d
     return model
 
 
-def uneven_lstm_autoencoder(input_len, aux_input_len, n_step, size, num_layers, drop_frac, **kwargs):
+def uneven_lstm_autoencoder(input_len, aux_input_len, n_step, size, num_layers,
+                            drop_frac, embedding_size=None, **kwargs):
     output_len = 1
-
+    if embedding_size is None:
+        embedding_size = size
     main_input = Input(shape=(n_step, input_len), name='main_input')
     encode = [main_input] + [None] * num_layers
     drop_in = [None] * (num_layers + 1)
     for i in range(1, num_layers + 1):
-        encode[i] = LSTM(size, return_sequences=(i != num_layers))(encode[i - 1])
+        encode[i] = LSTM(size if i != num_layers else embedding_size,
+                         return_sequences=(i != num_layers))(encode[i - 1])
         drop_in[i] = Dropout(drop_frac)(encode[i])
     tiled = RepeatVector(n_step)(encode[-1])
     aux_input = Input(shape=(n_step, aux_input_len), name='aux_input')
@@ -132,6 +146,7 @@ if __name__ == '__main__':
     parser.add_argument("--n_max", type=int, default=250)
     parser.add_argument('--even', dest='even', action='store_true')
     parser.add_argument('--uneven', dest='even', action='store_false')
+    parser.add_argument('--embedding', type=int, default=None)
     parser.set_defaults(even=True)
     args = parser.parse_args()
 
@@ -152,13 +167,16 @@ if __name__ == '__main__':
     model = model_dict[args.model_type](input_len=X.shape[-1], aux_input_len=X.shape[-1] - 1,
                                         n_step=X.shape[1], size=args.size,
                                         num_layers=args.num_layers,
-                                        drop_frac=args.drop_frac)
+                                        drop_frac=args.drop_frac,
+                                        embedding_size=args.embedding)
 
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(args.model_type, args.size,
                                                 args.num_layers, args.lr,
                                                 int(100 * args.drop_frac)).replace('e-', 'm')
     if 'conv' in run:
         run += '_f{}'.format(args.filter)
+    if args.embedding:
+        run += '_emb{}'.format(args.embedding)
 
     sample_weight = (X[train, :, -1] != 0.)
     if args.even:
