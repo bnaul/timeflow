@@ -2,7 +2,7 @@ import os
 import shutil
 import tensorflow as tf
 from keras.optimizers import Adam
-from keras.callbacks import ProgbarLogger, TensorBoard
+from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping
 
 
 def limited_memory_session(gpu_frac, gpu_id):
@@ -34,7 +34,8 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size,
                             validation_split=0.2, callbacks=[ProgbarLogger(),
                                                              TensorBoard(log_dir=log_dir,
-                                                                         write_graph=False)],
+                                                                         write_graph=False),
+                                                             EarlyStopping(patience=3)],
                             sample_weight=sample_weight)
         model.save_weights(os.path.join(log_dir, 'weights.h5'), overwrite=True)
     return history
