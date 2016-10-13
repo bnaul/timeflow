@@ -35,7 +35,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                             validation_split=0.2, callbacks=[ProgbarLogger(),
                                                              TensorBoard(log_dir=log_dir,
                                                                          write_graph=False),
-                                                             EarlyStopping(patience=8)],
+                                                             EarlyStopping(patience=20)],
                             sample_weight=sample_weight)
         model.save_weights(os.path.join(log_dir, 'weights.h5'), overwrite=True)
     return history
