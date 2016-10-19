@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tensorflow as tf
@@ -18,9 +19,9 @@ def limited_memory_session(gpu_frac, gpu_id):
 
 def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                   metrics=[], sample_weight=None, **kwargs):
-    adam = Adam(lr=lr)
+    optimizer = Adam(lr=lr)
     print(metrics)
-    model.compile(optimizer=adam, loss=loss, metrics=metrics,
+    model.compile(optimizer=optimizer, loss=loss, metrics=metrics,
                   sample_weight_mode='temporal' if sample_weight is not None else None)
 
     log_dir = os.path.join(os.getcwd(), 'keras_logs', sim_type, run)
@@ -31,6 +32,12 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         model.load_weights(os.path.join(log_dir, 'weights.h5'))
     else:
         shutil.rmtree(log_dir, ignore_errors=True)
+        os.makedirs(log_dir)
+        param_log = {key: value for key, value in locals().items()
+                     if key not in ['X', 'Y', 'model', 'optimizer', 'kwargs']}
+        param_log.update(kwargs)
+        json.dump(param_log, open(os.path.join(log_dir, 'param_log.json'), 'w'),
+                  sort_keys=True, indent=2)
         history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size,
                             validation_split=0.2, callbacks=[ProgbarLogger(),
                                                              TensorBoard(log_dir=log_dir,
