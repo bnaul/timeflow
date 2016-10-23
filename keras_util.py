@@ -36,7 +36,8 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         shutil.rmtree(log_dir, ignore_errors=True)
         os.makedirs(log_dir)
         param_log = {key: value for key, value in locals().items()
-                     if key not in ['X', 'Y', 'model', 'optimizer', 'kwargs']}
+                     if key not in ['X', 'Y', 'model', 'optimizer',
+                                    'sample_weights', 'kwargs']}
         param_log.update(kwargs)
         json.dump(param_log, open(os.path.join(log_dir, 'param_log.json'), 'w'),
                   sort_keys=True, indent=2)
