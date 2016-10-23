@@ -101,6 +101,7 @@ if __name__ == '__main__':
     parser.add_argument("--n_max", type=int, default=250)
     parser.add_argument('--even', dest='even', action='store_true')
     parser.add_argument('--uneven', dest='even', action='store_false')
+    parser.add_argument('--no_train', dest='no_train', action='store_true')
     parser.set_defaults(even=True)
     args = parser.parse_args()
 

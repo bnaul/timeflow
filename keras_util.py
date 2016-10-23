@@ -18,7 +18,7 @@ def limited_memory_session(gpu_frac, gpu_id):
 
 
 def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
-                  metrics=[], sample_weight=None, **kwargs):
+                  metrics=[], sample_weight=None, no_train=False, **kwargs):
     optimizer = Adam(lr=lr)
     print(metrics)
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics,
@@ -31,6 +31,8 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         history = []
         model.load_weights(os.path.join(log_dir, 'weights.h5'))
     else:
+        if no_train:
+            raise FileNotFoundError("No weights found.")
         shutil.rmtree(log_dir, ignore_errors=True)
         os.makedirs(log_dir)
         param_log = {key: value for key, value in locals().items()
