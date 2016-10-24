@@ -10,7 +10,8 @@ def preprocess(X, m_max):
     X = X[~wrong_units, :, :]
     time_offsets = X[:, 0, 0]
     X[:, :, 0] = (X[:, :, 0].T - time_offsets).T
-    global_mean = X[:, :, 1].mean()
+    mask_inds = (X[:, :, 2] < 0)
+    global_mean = X[:, :, 1][~mask_inds].mean()
     X[:, :, 1] -= global_mean
     return X, {}
 
