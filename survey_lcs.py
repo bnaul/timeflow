@@ -47,7 +47,8 @@ if __name__ == '__main__':
 
     X_list = [pd.read_csv(f, header=None).values for f in filenames[:args.first_N]]
 
-    model_dict = {'gru': uneven_gru_autoencoder}
+    model_dict = {'gru': uneven_gru_autoencoder,
+                  'lstm': uneven_lstm_autoencoder}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
     X = pad_sequences(X_list, value=-1., dtype='float', padding='post')
     X, scale_params = preprocess(X, args.m_max)
