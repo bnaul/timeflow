@@ -32,7 +32,7 @@ if __name__ == '__main__':
     parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--sim_type", type=str, default='survey_lcs')
 #    parser.add_argument("--filter", type=int, default=5)
-    parser.add_argument("--first_N", type=int, default=5000)
+    parser.add_argument("--first_N", type=int, default=10000)
     parser.add_argument("--n_min", type=int, default=100)
     parser.add_argument("--m_max", type=int, default=50)
     parser.add_argument('--embedding', type=int, default=None)
