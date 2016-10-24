@@ -75,7 +75,7 @@ if __name__ == '__main__':
     import os
     import numpy as np
     from keras import backend as K
-    from scipy.fftpack import fft
+    from scipy.fftpack import fft, dct
     from gatspy.periodic import LombScargleFast
 
     import sample_data
