@@ -7,8 +7,6 @@ def random_uneven_times(N, n_min, n_max, t_max):
             for i in range(N)]
 
 
-
-
 def periodic(N, n_min, n_max, t_max=None, even=True, A_shape=1., noise_sigma=1., w_min=0.01,
              w_max=1.):
     """Returns (values, (frequency, amplitude, phase, offset))"""

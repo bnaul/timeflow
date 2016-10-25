@@ -6,13 +6,18 @@ import keras_util as ku
 from autoencoder import uneven_gru_autoencoder, uneven_lstm_autoencoder
 
 def preprocess(X, m_max):
+    # Remove data not in mags
     wrong_units = X[:, :, 1].max(axis=1) > m_max
     X = X[~wrong_units, :, :]
-    time_offsets = X[:, 0, 0]
-    X[:, :, 0] = (X[:, :, 0].T - time_offsets).T
+
+    # Replace times w/ lags
+    X[:, :, 0] = np.c_[np.zeros(X.shape[0]), np.diff(X[:, :, 0])]
+
+    # Subtract mean magnitude
     mask_inds = (X[:, :, 2] < 0)
     global_mean = X[:, :, 1][~mask_inds].mean()
     X[:, :, 1] -= global_mean
+
     return X, {}
 
 
@@ -32,7 +37,7 @@ if __name__ == '__main__':
     parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--sim_type", type=str, default='survey_lcs')
 #    parser.add_argument("--filter", type=int, default=5)
-    parser.add_argument("--first_N", type=int, default=10000)
+    parser.add_argument("--first_N", type=int, default=None)
     parser.add_argument("--n_min", type=int, default=100)
     parser.add_argument("--n_max", type=int, default=1000)
     parser.add_argument("--m_max", type=int, default=50)
@@ -43,10 +48,12 @@ if __name__ == '__main__':
 
     filenames = glob.glob('./data/survey_lcs/*')
     lengths = {f: sum(1 for line in open(f)) for f in filenames}
-    filenames = [f for f in filenames if lengths[f] >= args.n_min]
+    filenames = [f for f in filenames if lengths[f] >= args.n_min
+                                      and lengths[f] <= args.n_max]
     filenames = sorted(filenames, key=lambda f: lengths[f])
 
-    X_list = [pd.read_csv(f, header=None).values for f in filenames[:args.first_N]]
+    X_list = [pd.read_csv(f, header=None).sort_values(by=0).values
+              for f in filenames[:args.first_N]]
 
     model_dict = {'gru': uneven_gru_autoencoder,
                   'lstm': uneven_lstm_autoencoder}
