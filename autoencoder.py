@@ -178,7 +178,7 @@ if __name__ == '__main__':
     if args.embedding:
         run += '_emb{}'.format(args.embedding)
 
-    sample_weight = (X[train, :, -1] != 0.)
+    sample_weight = (X[train, :, -1] != -1)
     if args.even:
         history = ku.train_and_log(X[train], X[train], run, model, **vars(args))
     else:

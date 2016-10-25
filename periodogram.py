@@ -76,7 +76,7 @@ if __name__ == '__main__':
     import numpy as np
     from keras import backend as K
     from scipy.fftpack import fft, dct
-    from gatspy.periodic import LombScargleFast
+    from scipy.signal import lombscargle
 
     import sample_data
     import keras_util as ku
@@ -114,7 +114,7 @@ if __name__ == '__main__':
                                 A_shape=5., noise_sigma=args.sigma, w_min=0.1,
                                 w_max=1.)
     Y[:, 0] **= -1  # period instead of frequency
-    
+
     if args.loss_weights:
         Y *= args.loss_weights
 
@@ -122,7 +122,10 @@ if __name__ == '__main__':
         X = X[:, :, 1:2]
         F = dct(X)[:, :, 0]
     else:
-        raise NotImplementedError("Use Lomb-Scargle here")
+        freqs = np.linspace(0., 2 * np.pi, args.n_max + 1)[1:]
+        F = np.zeros((X.shape[0], freqs.shape[0]))
+        for i in range(X.shape[0]):
+            F[i] = lombscargle(X[i, :, 0], X[i, :, 1], freqs)
 
     model_dict = {'lstm': lstm_periodogram_estimator, 'gru': gru_periodogram_estimator,
                   'conv': conv_periodogram_estimator, 'atrous': atrous_periodogram_estimator}
