@@ -2,21 +2,21 @@ import numpy as np
 from keras.preprocessing.sequence import pad_sequences
 
 
-def random_uneven_times(N, n_min, n_max, t_max):
-    return [t_max * np.sort(np.random.random(size=np.random.randint(n_min, n_max + 1)))
+def random_uneven_times(N, n_min, n_max, a=2, scale=0.05):
+    lags = [scale * np.random.pareto(a, size=np.random.randint(n_min, n_max + 1))
             for i in range(N)]
+    return [np.concatenate(([0], np.cumsum(lags_i))) for lags_i in lags]
 
 
 def periodic(N, n_min, n_max, t_max=None, even=True, A_shape=1., noise_sigma=1., w_min=0.01,
-             w_max=1.):
+             w_max=1., t_shape=2, t_scale=0.05):
     """Returns (values, (frequency, amplitude, phase, offset))"""
-    if t_max is None:
-        t_max = float(n_max)
-
     if even:
+        if t_max is None:
+            t_max = float(n_max)
         t = [np.linspace(0., t_max, n_max) for i in range(N)]
     else:
-        t = random_uneven_times(N, n_min, n_max, t_max)
+        t = random_uneven_times(N, n_min, n_max, t_shape, t_scale)
     w = np.random.uniform(w_min, w_max, size=N)
     A = np.random.gamma(shape=A_shape, scale=1. / A_shape, size=N)
     phi = 2 * np.pi * np.random.random(size=N)
