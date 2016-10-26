@@ -157,8 +157,8 @@ if __name__ == '__main__':
                                 A_shape=5., noise_sigma=args.sigma, w_min=0.1,
                                 w_max=1.)
     if args.even:
-        model_dict = {'gru': even_gru_autoencoder, 'lstm': even_lstm_autoencoder}
-        X = X[:, :, 1:2]
+        model_dict = {'gru': uneven_gru_autoencoder, 'lstm': uneven_lstm_autoencoder}
+#        X = X[:, :, 1:2]
     else:
         model_dict = {'gru': uneven_gru_autoencoder, 'lstm': uneven_lstm_autoencoder}
 
@@ -178,10 +178,13 @@ if __name__ == '__main__':
     if args.embedding:
         run += '_emb{}'.format(args.embedding)
 
-    sample_weight = (X[train, :, -1] != -1)
     if args.even:
-        history = ku.train_and_log(X[train], X[train], run, model, **vars(args))
+#        history = ku.train_and_log(X[train], X[train], run, model, **vars(args))
+        history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
+                                   X[train, :, 1:2], run, model,#sample_weight=sample_weight,
+                                   **vars(args))
     else:
+        sample_weight = (X[train, :, -1] != -1)
         history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
                                    X[train, :, 1:2], run, model, sample_weight=sample_weight,
                                    **vars(args))
