@@ -8,6 +8,7 @@ from keras.models import Model, Sequential
 import sample_data
 import keras_util as ku
 
+
 # TODO additive noise (corruption)?
 def even_gru_autoencoder(n_step, size, num_layers, drop_frac,
                          embedding_size=None, **kwargs):
@@ -147,6 +148,7 @@ if __name__ == '__main__':
     parser.add_argument('--even', dest='even', action='store_true')
     parser.add_argument('--uneven', dest='even', action='store_false')
     parser.add_argument('--embedding', type=int, default=None)
+    parser.add_argument('--patience', type=int, default=20)
     parser.set_defaults(even=True)
     args = parser.parse_args()
 
