@@ -1,9 +1,51 @@
+import argparse
 import json
 import os
 import shutil
 import tensorflow as tf
 from keras.optimizers import Adam
 from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping
+
+
+def parse_model_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("size", type=int)
+    parser.add_argument("num_layers", type=int)
+    parser.add_argument("drop_frac", type=float)
+    parser.add_argument("--batch_size", type=int, default=500)
+    parser.add_argument("--nb_epoch", type=int, default=250)
+    parser.add_argument("--lr", type=float, default=0.002)
+    parser.add_argument("--loss", type=str, default='mse')
+    parser.add_argument("--loss_weights", type=float, nargs='*')
+    parser.add_argument("--model_type", type=str, default='lstm')
+    parser.add_argument("--gpu_frac", type=float, default=0.31)
+    parser.add_argument("--gpu_id", type=int, default=0)
+    parser.add_argument("--sigma", type=float, default=2e-9)
+    parser.add_argument("--sim_type", type=str, default='period')
+    parser.add_argument("--filter", type=int, default=5)
+    parser.add_argument("--N_train", type=int, default=50000)
+    parser.add_argument("--N_test", type=int, default=1000)
+    parser.add_argument("--n_min", type=int, default=250)
+    parser.add_argument("--n_max", type=int, default=250)
+    parser.add_argument('--even', dest='even', action='store_true')
+    parser.add_argument('--uneven', dest='even', action='store_false')
+    parser.add_argument('--no_train', dest='no_train', action='store_true')
+    parser.add_argument('--embedding', type=int, default=None)
+    parser.set_defaults(even=True)
+    return parser.parse_args()
+
+
+def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter=None,
+               embedding=None, **kwargs):
+    run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(model_type, size,
+                                                num_layers, lr,
+                                                int(100 * drop_frac)).replace('e-', 'm')
+    if model_type in ['conv', 'atrous']:
+        run += '_f{}'.format(filter)
+    if embedding:
+        run += '_emb{}'.format(embedding)
+
+    return run
 
 
 def limited_memory_session(gpu_frac, gpu_id):

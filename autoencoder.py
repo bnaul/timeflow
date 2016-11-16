@@ -9,148 +9,47 @@ import sample_data
 import keras_util as ku
 
 
-# TODO additive noise (corruption)?
-def even_gru_autoencoder(n_step, size, num_layers, drop_frac,
-                         embedding_size=None, **kwargs):
-    output_len = 1  # TODO generalize?
+# input: (t, m, e), (t, m), or (m)
+def rnn_encoder(model_input, layer, size, num_layers, drop_frac=0.0,
+                embedding_size=None):
     if embedding_size is None:
         embedding_size = size
-    main_input = Input(shape=(n_step, output_len))
-    encode = [main_input] + [None] * num_layers
-    drop_in = [None] * (num_layers + 1)
-    for i in range(1, num_layers + 1):
-        encode[i] = GRU(size if i != num_layers else embedding_size,
-                        return_sequences=(i != num_layers))(encode[i - 1])
-        drop_in[i] = Dropout(drop_frac)(encode[i])
-    tiled = RepeatVector(n_step)(encode[-1])
-#    aux_input = Input(shape=(n_step, 1), name='aux_input')
-#    decode = merge([aux_input, tiled], mode='concat')
-    decode = [tiled] + [None] * num_layers
-    drop_out = [None] * (num_layers + 1)
-    for i in range(1, num_layers + 1):
-        decode[i] = GRU(size, return_sequences=True)(decode[i - 1])
-        drop_out[i] = Dropout(drop_frac)(decode[i])
-    out_relu = TimeDistributed(Dense(output_len, activation='relu'))(drop_out[-1])
-    out_lin = TimeDistributed(Dense(output_len, activation='linear'))(out_relu)
-    model = Model(input=main_input, output=out_lin)
-    return model
+
+    # TODO can we combine? think there might be an issue but can't remember why
+    encode = layer(size if num_layers > 1 else embedding_size,
+                        return_sequences=(num_layers > 1))(model_input)
+    if drop_frac > 0.0:
+        encode = Dropout(drop_frac)(encode)
+
+    for i in range(1, num_layers):
+        encode = layer(size if i != num_layers else embedding_size,
+                       return_sequences=(i < num_layers - 1))(encode)
+        if drop_frac > 0.0:
+            encode = Dropout(drop_frac)(encode)
+
+    return encode
 
 
-def even_lstm_autoencoder(n_step, size, num_layers, drop_frac,
-                          embedding_size=None, **kwargs):
-    output_len = 1  # TODO generalize?
-    if embedding_size is None:
-        embedding_size = size
-    main_input = Input(shape=(n_step, output_len))
-    encode = [main_input] + [None] * num_layers
-    drop_in = [None] * (num_layers + 1)
-    for i in range(1, num_layers + 1):
-        encode[i] = LSTM(size if i != num_layers else embedding_size,
-                         return_sequences=(i != num_layers))(encode[i - 1])
-        drop_in[i] = Dropout(drop_frac)(encode[i])
-    tiled = RepeatVector(n_step)(encode[-1])
-#    aux_input = Input(shape=(n_step, 1), name='aux_input')
-#    decode = merge([aux_input, tiled], mode='concat')
-    decode = [tiled] + [None] * num_layers
-    drop_out = [None] * (num_layers + 1)
-    for i in range(1, num_layers + 1):
-        decode[i] = LSTM(size, return_sequences=True)(decode[i - 1])
-        drop_out[i] = Dropout(drop_frac)(decode[i])
-    out_relu = TimeDistributed(Dense(output_len, activation='relu'))(drop_out[-1])
-    out_lin = TimeDistributed(Dense(output_len, activation='linear'))(out_relu)
-    model = Model(input=main_input, output=out_lin)
-    return model
-
-
-# input: (t, m, e) or (t, m)
-# aux input: (t) or (t, e)
+# aux input: (t) or (t, e) or None
 # output: just m (output_len==1)
-def uneven_gru_autoencoder(input_len, aux_input_len, n_step, size, num_layers,
-                           drop_frac, embedding_size=None, **kwargs):
-    output_len = 1
-    if embedding_size is None:
-        embedding_size = size
-    main_input = Input(shape=(n_step, input_len), name='main_input')
-    encode = [main_input] + [None] * num_layers
-    drop_in = [None] * (num_layers + 1)
+def rnn_decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=None):
+    decode = RepeatVector(n_step)(encode)
+    if aux_input:
+        decode = merge([aux_input, decode], mode='concat')
     for i in range(1, num_layers + 1):
-        encode[i] = GRU(size if i != num_layers else embedding_size,
-                        return_sequences=(i != num_layers))(encode[i - 1])
-        drop_in[i] = Dropout(drop_frac)(encode[i])
-    tiled = RepeatVector(n_step)(encode[-1])
-    aux_input = Input(shape=(n_step, aux_input_len), name='aux_input')
-    merged = merge([aux_input, tiled], mode='concat')
-    decode = [merged] + [None] * num_layers
-    drop_out = [None] * (num_layers + 1)
-    for i in range(1, num_layers + 1):
-        decode[i] = GRU(size, return_sequences=True)(decode[i - 1])
-        drop_out[i] = Dropout(drop_frac)(decode[i])
-    out_relu = TimeDistributed(Dense(output_len, activation='relu'))(drop_out[-1])
-    out_lin = TimeDistributed(Dense(output_len, activation='linear'))(out_relu)
-    model = Model(input=[main_input, aux_input], output=out_lin)
-    return model
+        decode = layer(size, return_sequences=True)(decode)
+        if drop_frac > 0.0:
+            decode = Dropout(drop_frac)(decode)
 
-
-def uneven_lstm_autoencoder(input_len, aux_input_len, n_step, size, num_layers,
-                            drop_frac, embedding_size=None, **kwargs):
-    output_len = 1
-    if embedding_size is None:
-        embedding_size = size
-    main_input = Input(shape=(n_step, input_len), name='main_input')
-    encode = [main_input] + [None] * num_layers
-    drop_in = [None] * (num_layers + 1)
-    for i in range(1, num_layers + 1):
-        encode[i] = LSTM(size if i != num_layers else embedding_size,
-                         return_sequences=(i != num_layers))(encode[i - 1])
-        drop_in[i] = Dropout(drop_frac)(encode[i])
-    tiled = RepeatVector(n_step)(encode[-1])
-    aux_input = Input(shape=(n_step, aux_input_len), name='aux_input')
-    merged = merge([aux_input, tiled], mode='concat')
-    decode = [merged] + [None] * num_layers
-    drop_out = [None] * (num_layers + 1)
-    for i in range(1, num_layers + 1):
-        decode[i] = LSTM(size, return_sequences=True)(decode[i - 1])
-        drop_out[i] = Dropout(drop_frac)(decode[i])
-    out_relu = TimeDistributed(Dense(output_len, activation='relu'))(drop_out[-1])
-    out_lin = TimeDistributed(Dense(output_len, activation='linear'))(out_relu)
-    model = Model(input=[main_input, aux_input], output=out_lin)
-    return model
+#    # TODO try removing reLU?
+#    out_relu = TimeDistributed(Dense(1, activation='relu'))(decode)
+    out = TimeDistributed(Dense(1, activation='linear'))(decode)
+    return out
 
 
 if __name__ == '__main__':
-    import argparse
-    import os
-    import numpy as np
-    from keras import backend as K
-
     import sample_data
-    import keras_util as ku
-
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("size", type=int)
-    parser.add_argument("num_layers", type=int)
-    parser.add_argument("drop_frac", type=float)
-    parser.add_argument("--batch_size", type=int, default=500)
-    parser.add_argument("--nb_epoch", type=int, default=250)
-    parser.add_argument("--lr", type=float, default=0.002)
-    parser.add_argument("--loss", type=str, default='mse')
-    parser.add_argument("--model_type", type=str, default='lstm')
-    parser.add_argument("--gpu_frac", type=float, default=0.31)
-    parser.add_argument("--gpu_id", type=int, default=0)
-    parser.add_argument("--sigma", type=float, default=2e-9)
-    parser.add_argument("--sim_type", type=str, default='autoencoder')
-    parser.add_argument("--filter", type=int, default=5)
-    parser.add_argument("--N_train", type=int, default=50000)
-    parser.add_argument("--N_test", type=int, default=1000)
-    parser.add_argument("--n_min", type=int, default=250)
-    parser.add_argument("--n_max", type=int, default=250)
-    parser.add_argument('--even', dest='even', action='store_true')
-    parser.add_argument('--uneven', dest='even', action='store_false')
-    parser.add_argument('--embedding', type=int, default=None)
-    parser.add_argument('--patience', type=int, default=20)
-    parser.set_defaults(even=True)
-    args = parser.parse_args()
+    args = ku.parse_model_args()
 
     np.random.seed(0)
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
@@ -158,36 +57,36 @@ if __name__ == '__main__':
                                 args.n_max, t_max=2*np.pi, even=args.even,
                                 A_shape=5., noise_sigma=args.sigma, w_min=0.1,
                                 w_max=1.)
-    if args.even:
-        model_dict = {'gru': uneven_gru_autoencoder, 'lstm': uneven_lstm_autoencoder}
-#        X = X[:, :, 1:2]
-    else:
-        model_dict = {'gru': uneven_gru_autoencoder, 'lstm': uneven_lstm_autoencoder}
 
-
+    model_type_dict = {'gru': GRU, 'lstm': LSTM}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
-    model = model_dict[args.model_type](input_len=X.shape[-1], aux_input_len=X.shape[-1] - 1,
-                                        n_step=X.shape[1], size=args.size,
-                                        num_layers=args.num_layers,
-                                        drop_frac=args.drop_frac,
-                                        embedding_size=args.embedding)
 
-    run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(args.model_type, args.size,
-                                                args.num_layers, args.lr,
-                                                int(100 * args.drop_frac)).replace('e-', 'm')
-    if 'conv' in run:
-        run += '_f{}'.format(args.filter)
-    if args.embedding:
-        run += '_emb{}'.format(args.embedding)
-
+    main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     if args.even:
+        model_input = main_input
+    else:
+        model_input = [main_input,
+                       Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')]
+    encode = rnn_encoder(main_input, layer=model_type_dict[args.model_type],
+                         size=args.size, num_layers=args.num_layers,
+                         drop_frac=args.drop_frac,
+                         embedding_size=args.embedding)
+    decode = rnn_decoder(encode, layer=model_type_dict[args.model_type],
+                         n_step=X.shape[1], size=args.size,
+                         num_layers=args.num_layers, drop_frac=args.drop_frac)
+    model = Model(model_input, decode)
+
+    run = ku.get_run_id(**vars(args))
+ 
+    if args.even:
+        # TODO restore 1d input?
 #        history = ku.train_and_log(X[train], X[train], run, model, **vars(args))
         history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
                                    X[train, :, 1:2], run, model,#sample_weight=sample_weight,
                                    **vars(args))
     else:
         # Replace times w/ lags
-        X[:, :, 0] = np.c_[np.zeros(X.shape[0]), np.diff(X[:, :, 0])]
+        X[:, :, 0] = np.c_[np.diff(X[:, :, 0]), np.zeros(X.shape[0])]
 
         sample_weight = (X[train, :, -1] != -1)
         history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
