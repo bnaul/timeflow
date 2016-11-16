@@ -186,6 +186,9 @@ if __name__ == '__main__':
                                    X[train, :, 1:2], run, model,#sample_weight=sample_weight,
                                    **vars(args))
     else:
+        # Replace times w/ lags
+        X[:, :, 0] = np.c_[np.zeros(X.shape[0]), np.diff(X[:, :, 0])]
+
         sample_weight = (X[train, :, -1] != -1)
         history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
                                    X[train, :, 1:2], run, model, sample_weight=sample_weight,

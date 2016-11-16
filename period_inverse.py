@@ -131,4 +131,8 @@ if __name__ == '__main__':
     if 'conv' in run:
         run += '_f{}'.format(args.filter)
 
+    if not args.even:
+        # Replace times w/ lags
+        X[:, :, 0] = np.c_[np.zeros(X.shape[0]), np.diff(X[:, :, 0])]
+
     history = ku.train_and_log(model_input, X[train, :, 1:2], run, model, **vars(args))
