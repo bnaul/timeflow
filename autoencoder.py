@@ -34,7 +34,7 @@ def rnn_encoder(model_input, layer, size, num_layers, drop_frac=0.0,
 # output: just m (output_len==1)
 def rnn_decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=None):
     decode = RepeatVector(n_step)(encode)
-    if aux_input:
+    if aux_input is not None:
         decode = merge([aux_input, decode], mode='concat')
     for i in range(1, num_layers + 1):
         decode = layer(size, return_sequences=True)(decode)
@@ -64,16 +64,19 @@ if __name__ == '__main__':
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     if args.even:
         model_input = main_input
+        aux_input = None
     else:
-        model_input = [main_input,
-                       Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')]
+        aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
+        model_input = [main_input, aux_input]
+
     encode = rnn_encoder(main_input, layer=model_type_dict[args.model_type],
                          size=args.size, num_layers=args.num_layers,
                          drop_frac=args.drop_frac,
                          embedding_size=args.embedding)
     decode = rnn_decoder(encode, layer=model_type_dict[args.model_type],
                          n_step=X.shape[1], size=args.size,
-                         num_layers=args.num_layers, drop_frac=args.drop_frac)
+                         num_layers=args.num_layers, drop_frac=args.drop_frac,
+                         aux_input=aux_input)
     model = Model(model_input, decode)
 
     run = ku.get_run_id(**vars(args))
