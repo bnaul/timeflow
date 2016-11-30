@@ -31,6 +31,7 @@ def parse_model_args():
     parser.add_argument('--uneven', dest='even', action='store_false')
     parser.add_argument('--no_train', dest='no_train', action='store_true')
     parser.add_argument('--embedding', type=int, default=None)
+    parser.add_argument("--patience", type=int, default=20)
     parser.set_defaults(even=True)
     return parser.parse_args()
 

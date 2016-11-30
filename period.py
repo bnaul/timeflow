@@ -2,7 +2,7 @@ import numpy as np
 from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
-                          Conv1D, AtrousConv1D, MaxPooling1D)
+                          Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
 from keras.models import Model, Sequential
 
 from autoencoder import rnn_encoder
@@ -68,7 +68,7 @@ if __name__ == '__main__':
     else:
         X[:, :, 0] = np.c_[np.diff(X[:, :, 0]), np.zeros(X.shape[0])]
 
-    model_type_dict = {'gru': GRU, 'lstm': LSTM}
+    model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
 
     model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
