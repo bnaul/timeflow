@@ -22,7 +22,7 @@ def periodic(N, n_min, n_max, t_max=None, even=True, A_shape=1., noise_sigma=1.,
     phi = 2 * np.pi * np.random.random(size=N)
     b = np.random.normal(scale=1, size=N)
     X_list = [np.c_[t[i], A[i] * np.sin(2 * np.pi * w[i] * t[i] + phi[i]) 
-                    + np.random.normal(scale=noise_sigma, size=len(t[i])) + b[i]]
+                    + np.random.normal(scale=noise_sigma + 1e-9, size=len(t[i])) + b[i]]
               for i in range(N)]
     X = pad_sequences(X_list, maxlen=n_max, value=0., dtype='float')
     Y = np.c_[w, A, phi, b]
