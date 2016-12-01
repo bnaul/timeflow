@@ -59,9 +59,17 @@ if __name__ == '__main__':
                                 A_shape=5., noise_sigma=args.sigma, w_min=0.1,
                                 w_max=1.)
 
+    # freq amp phase -> freq cos_amp sin_amp
+    if not args.phase_format:
+        A = Y[:, 1] * np.sin(Y[:, 2])
+        B = Y[:, 1] * np.cos(Y[:, 2])
+        Y[:, 1] = A
+        Y[:, 2] = B
+
     Y[:, 0] **= -1  # period instead of frequency
     if args.loss_weights:
         Y *= args.loss_weights
+
 
     if args.even:
         X = X[:, :, 1:2]

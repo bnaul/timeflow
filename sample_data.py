@@ -10,7 +10,7 @@ def random_uneven_times(N, n_min, n_max, a=2, scale=0.05):
 
 def periodic(N, n_min, n_max, t_max=None, even=True, A_shape=1., noise_sigma=1., w_min=0.01,
              w_max=1., t_shape=2, t_scale=0.05):
-    """Returns (values, (frequency, amplitude, phase, offset))"""
+    """Returns sinuosid data (values, (frequency, amplitude, phase, offset))"""
     if even:
         if t_max is None:
             t_max = float(n_max)
