@@ -2,7 +2,8 @@ import numpy as np
 from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
-                          Conv1D, MaxPooling1D, SimpleRNN)
+                          Recurrent, AtrousConv1D, Conv1D,
+                          MaxPooling1D, SimpleRNN, BatchNormalization)
 from keras.models import Model, Sequential
 
 import sample_data
@@ -10,29 +11,36 @@ import keras_util as ku
 
 
 # input: (t, m, e), (t, m), or (m)
-def rnn_encoder(model_input, layer, size, num_layers, drop_frac=0.0,
-                embedding_size=None):
-    if embedding_size is None:
-        embedding_size = size
+def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=False,
+            output_size=None, filter_length=None, **parsed_args):
+    if output_size is None:
+        output_size = size
 
-    # TODO can we combine? think there might be an issue but can't remember why
-    encode = layer(size if num_layers > 1 else embedding_size,
-                        return_sequences=(num_layers > 1))(model_input)
-    if drop_frac > 0.0:
-        encode = Dropout(drop_frac)(encode)
-
-    for i in range(1, num_layers):
-        encode = layer(size if i != num_layers else embedding_size,
-                       return_sequences=(i < num_layers - 1))(encode)
+    encode = model_input
+    for i in range(num_layers):
+        kwargs = {}
+        if issubclass(layer, Recurrent):
+            kwargs['return_sequences'] = (i < num_layers - 1)
+        if issubclass(layer, Conv1D):
+            kwargs['activation'] = 'relu'  # TODO pass in
+            kwargs['filter_length'] = filter_length
+            kwargs['border_mode'] = 'same'
+        if issubclass(layer, AtrousConv1D):
+            kwargs['atrous_rate'] = 2 ** i
+            
+        encode = layer(size if i < (num_layers - 1) else output_size, **kwargs)(encode)
         if drop_frac > 0.0:
             encode = Dropout(drop_frac)(encode)
+        if batch_norm:
+            encode = BatchNormalization()(encode)
 
-    return encode
+    return Flatten()(encode)
 
 
 # aux input: (t) or (t, e) or None
 # output: just m (output_len==1)
-def rnn_decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=None):
+def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=None,
+            **parsed_args):
     decode = RepeatVector(n_step)(encode)
     if aux_input is not None:
         decode = merge([aux_input, decode], mode='concat')
@@ -58,7 +66,8 @@ if __name__ == '__main__':
                                 A_shape=5., noise_sigma=args.sigma, w_min=0.1,
                                 w_max=1.)
 
-    model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN}
+    model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
+                       'conv': Conv1D, 'atrous': AtrousConv1D}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
 
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
@@ -69,14 +78,12 @@ if __name__ == '__main__':
         aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
         model_input = [main_input, aux_input]
 
-    encode = rnn_encoder(main_input, layer=model_type_dict[args.model_type],
-                         size=args.size, num_layers=args.num_layers,
-                         drop_frac=args.drop_frac,
-                         embedding_size=args.embedding)
-    decode = rnn_decoder(encode, layer=model_type_dict[args.model_type],
-                         n_step=X.shape[1], size=args.size,
-                         num_layers=args.num_layers, drop_frac=args.drop_frac,
-                         aux_input=aux_input)
+    encode = encoder(main_input, layer=model_type_dict[args.model_type], size=args.size,
+                     num_layers=args.num_layers, drop_frac=args.drop_frac,
+                     output_size=args.embedding)
+    decode = decoder(encode, layer=model_type_dict[args.model_type], n_step=X.shape[1],
+                     size=args.size, num_layers=args.num_layers, drop_frac=args.drop_frac,
+                     aux_input=aux_input)
     model = Model(model_input, decode)
 
     run = ku.get_run_id(**vars(args))

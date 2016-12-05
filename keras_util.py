@@ -1,4 +1,6 @@
 import argparse
+from inspect import signature
+from functools import wraps
 import json
 import os
 import shutil
@@ -22,7 +24,7 @@ def parse_model_args():
     parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--sigma", type=float, default=2e-9)
     parser.add_argument("--sim_type", type=str, default='period')
-    parser.add_argument("--filter", type=int, default=5)
+    parser.add_argument("--filter_length", type=int, default=5)
     parser.add_argument("--N_train", type=int, default=50000)
     parser.add_argument("--N_test", type=int, default=1000)
     parser.add_argument("--n_min", type=int, default=250)
@@ -32,17 +34,20 @@ def parse_model_args():
     parser.add_argument('--no_train', dest='no_train', action='store_true')
     parser.add_argument('--embedding', type=int, default=None)
     parser.add_argument("--patience", type=int, default=20)
-    parser.set_defaults(even=True)
+    parser.add_argument('--batch_norm', dest='batch_norm', action='store_true')
+    parser.set_defaults(even=True, batch_norm=False)
     return parser.parse_args()
 
 
-def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter=None,
-               embedding=None, **kwargs):
+def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=None,
+               embedding=None, batch_norm=False, **kwargs):
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(model_type, size,
                                                 num_layers, lr,
                                                 int(100 * drop_frac)).replace('e-', 'm')
-    if model_type in ['conv', 'atrous']:
-        run += '_f{}'.format(filter)
+    if batch_norm:
+        run += "_bn"
+    if filter_length is not None:
+        run += '_f{}'.format(filter_length)
     if embedding:
         run += '_emb{}'.format(embedding)
 
