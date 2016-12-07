@@ -8,7 +8,8 @@ import sample_data
 import keras_util as ku
 
 
-if __name__ == '__main__':
+# TODO update
+def main(arg_dict={}):
     import argparse
     import os
     import numpy as np
@@ -57,3 +58,7 @@ if __name__ == '__main__':
                                                 args.num_layers, args.lr,
                                                 int(100 * args.drop_frac)).replace('e-', 'm')
     history = ku.train_and_log(X, Y, run, model, **vars(args))
+
+
+if __name__ == '__main__':
+    main()

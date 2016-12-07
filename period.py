@@ -10,10 +10,11 @@ import sample_data
 import keras_util as ku
 
 
-if __name__ == '__main__':
-    import sample_data
+def main(args=None):
+    if not args:
+        args = ku.parse_model_args()
+
     np.random.seed(0)
-    args = ku.parse_model_args()
     N = args.N_train + args.N_test
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
     X, Y = sample_data.periodic(N, args.n_min, args.n_max, t_max=2*np.pi, even=args.even,
@@ -47,3 +48,8 @@ if __name__ == '__main__':
     run = ku.get_run_id(**vars(args))
  
     history = ku.train_and_log(X[train], Y[train], run, model, **vars(args))
+    return X, Y, model
+
+
+if __name__ == '__main__':
+    X, Y, model = main()

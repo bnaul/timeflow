@@ -2,16 +2,19 @@ import numpy as np
 import tensorflow as tf
 from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU, SimpleRNN,
-                          Dropout, merge, Reshape, Flatten, RepeatVector)
+                          Dropout, merge, Reshape, Flatten, RepeatVector,
+                          Conv1D, AtrousConv1D)
 from keras.models import Model, Sequential
 from keras.initializations import normal, identity
+
+import sample_data
 import keras_util as ku
-from autoencoder import rnn_decoder
+from autoencoder import decoder
 
 
-if __name__ == '__main__':
-    import sample_data
-    args = ku.parse_model_args()
+def main(args=None):
+    if args is None:
+        args = ku.parse_model_args()
 
     np.random.seed(0)
     N = args.N_train + args.N_test
@@ -20,7 +23,8 @@ if __name__ == '__main__':
                                 even=args.even, A_shape=5.,
                                 noise_sigma=args.sigma, w_min=0.1, w_max=1.)
 
-    model_type_dict = {'gru': GRU, 'lstm': LSTM}
+    model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
+                       'conv': Conv1D, 'atrous': AtrousConv1D}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
 
     encode = Input(shape=(Y.shape[1],), name='main_input')
@@ -30,9 +34,8 @@ if __name__ == '__main__':
         model_input = [encode, Input(shape=(X.shape[1], X.shape[-1] - 1),
                                      name='aux_input')]
 
-    decode = rnn_decoder(encode, layer=model_type_dict[args.model_type],
-                         n_step=X.shape[1], size=args.size,
-                         num_layers=args.num_layers, drop_frac=args.drop_frac)
+    decode = decoder(encode, layer=model_type_dict[args.model_type],
+                     n_step=X.shape[1], **vars(args))
     model = Model(model_input, decode)
 
     run = ku.get_run_id(**vars(args))
@@ -43,3 +46,8 @@ if __name__ == '__main__':
         X[:, :, 0] = np.c_[np.zeros(X.shape[0]), np.diff(X[:, :, 0])]
         history = ku.train_and_log({'main_input': Y[train], 'aux_input': X[train, :, 0:1]},
                                    X[train, :, 1:2], run, model, **vars(args))
+    return X, Y, model
+
+
+if __name__ == '__main__':
+    X, Y, model = main()

@@ -70,6 +70,7 @@ def atrous_periodogram_estimator(output_len, input_size, n_step, size, num_layer
     return model
 
 
+# TODO update
 if __name__ == '__main__':
     import argparse
     import os

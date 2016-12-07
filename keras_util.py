@@ -10,9 +10,9 @@ from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping
 
 def parse_model_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("size", type=int)
-    parser.add_argument("num_layers", type=int)
-    parser.add_argument("drop_frac", type=float)
+    parser.add_argument("size", nargs="?", type=int)
+    parser.add_argument("num_layers", nargs="?", type=int)
+    parser.add_argument("drop_frac", nargs="?", type=float)
     parser.add_argument("--batch_size", type=int, default=500)
     parser.add_argument("--nb_epoch", type=int, default=250)
     parser.add_argument("--lr", type=float, default=0.002)
@@ -35,7 +35,8 @@ def parse_model_args():
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument('--batch_norm', dest='batch_norm', action='store_true')
     parser.set_defaults(even=True, batch_norm=False)
-    return parser.parse_args()
+    args = parser.parse_args()
+    return args
 
 
 def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=None,

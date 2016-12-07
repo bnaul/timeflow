@@ -34,30 +34,43 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
         if batch_norm:
             encode = BatchNormalization()(encode)
 
-    return Flatten()(encode)
+    if len(encode.get_shape()) > 2:
+        encode = Flatten()(encode)
+    return encode
 
 
 # aux input: (t) or (t, e) or None
 # output: just m (output_len==1)
 def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=None,
-            **parsed_args):
+            batch_norm=False, filter_length=None, **parsed_args):
     decode = RepeatVector(n_step)(encode)
     if aux_input is not None:
         decode = merge([aux_input, decode], mode='concat')
-    for i in range(1, num_layers + 1):
-        decode = layer(size, return_sequences=True)(decode)
+
+    for i in range(num_layers):
+        kwargs = {}
+        if issubclass(layer, Recurrent):
+            kwargs['return_sequences'] = True
+        if issubclass(layer, Conv1D):
+            kwargs['activation'] = 'relu'  # TODO pass in
+            kwargs['filter_length'] = filter_length
+            kwargs['border_mode'] = 'same'
+        if issubclass(layer, AtrousConv1D):
+            kwargs['atrous_rate'] = 2 ** i
+            
+        decode = layer(size, **kwargs)(decode)
         if drop_frac > 0.0:
             decode = Dropout(drop_frac)(decode)
+        if batch_norm:
+            decode = BatchNormalization()(decode)
 
-#    # TODO try removing reLU?
-#    out_relu = TimeDistributed(Dense(1, activation='relu'))(decode)
-    out = TimeDistributed(Dense(1, activation='linear'))(decode)
-    return out
+    decode = TimeDistributed(Dense(1, activation='linear'))(decode)
+    return decode
 
 
-if __name__ == '__main__':
-    import sample_data
-    args = ku.parse_model_args()
+def main(args=None):
+    if not args:
+        args = ku.parse_model_args()
 
     np.random.seed(0)
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
@@ -78,12 +91,9 @@ if __name__ == '__main__':
         aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
         model_input = [main_input, aux_input]
 
-    encode = encoder(main_input, layer=model_type_dict[args.model_type], size=args.size,
-                     num_layers=args.num_layers, drop_frac=args.drop_frac,
-                     output_size=args.embedding)
+    encode = encoder(main_input, layer=model_type_dict[args.model_type], **vars(args))
     decode = decoder(encode, layer=model_type_dict[args.model_type], n_step=X.shape[1],
-                     size=args.size, num_layers=args.num_layers, drop_frac=args.drop_frac,
-                     aux_input=aux_input)
+                     aux_input=aux_input, **vars(args))
     model = Model(model_input, decode)
 
     run = ku.get_run_id(**vars(args))
@@ -102,3 +112,8 @@ if __name__ == '__main__':
         history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
                                    X[train, :, 1:2], run, model, sample_weight=sample_weight,
                                    **vars(args))
+    return X, Y, model
+
+
+if __name__ == '__main__':
+    X, Y, model = main()
