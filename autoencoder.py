@@ -79,6 +79,19 @@ def main(args=None):
                                 A_shape=5., noise_sigma=args.sigma, w_min=0.1,
                                 w_max=1.)
 
+    # freq amp phase -> freq cos_amp sin_amp
+    A = Y[:, 1] * np.sin(Y[:, 2])
+    B = Y[:, 1] * np.cos(Y[:, 2])
+    Y[:, 1] = A
+    Y[:, 2] = B
+
+    Y[:, 0] **= -1  # period instead of frequency
+
+    if args.even:
+        X = X[:, :, 1:2]
+    else:
+        X[:, :, 0] = np.c_[np.diff(X[:, :, 0]), np.zeros(X.shape[0])]
+
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
@@ -99,21 +112,17 @@ def main(args=None):
     run = ku.get_run_id(**vars(args))
  
     if args.even:
-        # TODO restore 1d input?
-#        history = ku.train_and_log(X[train], X[train], run, model, **vars(args))
-        history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
-                                   X[train, :, 1:2], run, model,#sample_weight=sample_weight,
-                                   **vars(args))
+        history = ku.train_and_log(X[train], X[train], run, model, **vars(args))
+#        history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
+#                                   X[train, :, 1:2], run, model,#sample_weight=sample_weight,
+#                                   **vars(args))
     else:
-        # Replace times w/ lags
-        X[:, :, 0] = np.c_[np.diff(X[:, :, 0]), np.zeros(X.shape[0])]
-
         sample_weight = (X[train, :, -1] != -1)
         history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
                                    X[train, :, 1:2], run, model, sample_weight=sample_weight,
                                    **vars(args))
-    return X, Y, model
+    return X, Y, model, args
 
 
 if __name__ == '__main__':
-    X, Y, model = main()
+    X, Y, model, args = main()
