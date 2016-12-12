@@ -28,6 +28,7 @@ def main(args=None):
     Y[:, 2] = B
 
     Y[:, 0] **= -1  # period instead of frequency
+
     if args.loss_weights:
         Y *= args.loss_weights
 
