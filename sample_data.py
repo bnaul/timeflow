@@ -8,6 +8,10 @@ def random_uneven_times(N, n_min, n_max, a=2, scale=0.05):
     return [np.concatenate(([0], np.cumsum(lags_i))) for lags_i in lags]
 
 
+def sinusoid(p, A1, A2, b):
+        return lambda t: A1 * np.cos(2 * np.pi / p * t) + A2 * np.sin(2 * np.pi / p * t) + b
+
+
 def periodic(N, n_min, n_max, t_max=None, even=True, A_shape=1., noise_sigma=1., w_min=0.01,
              w_max=1., t_shape=2, t_scale=0.05):
     """Returns sinuosid data (values, (frequency, amplitude, phase, offset))"""
@@ -21,11 +25,19 @@ def periodic(N, n_min, n_max, t_max=None, even=True, A_shape=1., noise_sigma=1.,
     A = np.random.gamma(shape=A_shape, scale=1. / A_shape, size=N)
     phi = 2 * np.pi * np.random.random(size=N)
     b = np.random.normal(scale=1, size=N)
-    X_list = [np.c_[t[i], A[i] * np.sin(2 * np.pi * w[i] * t[i] + phi[i]) 
-                    + np.random.normal(scale=noise_sigma + 1e-9, size=len(t[i])) + b[i]]
+
+    # freq amp phase -> freq cos_amp sin_amp
+    A_cos = A * np.sin(phi)
+    A_sin = A * np.cos(phi)
+
+    p = w ** -1  # period instead of frequency
+
+    X_list = [np.c_[t[i], A_cos[i] * np.cos(2 * np.pi / p[i] * t[i]) +
+                          A_sin[i] * np.sin(2 * np.pi / p[i] * t[i]) + b[i] +
+                          np.random.normal(scale=noise_sigma + 1e-9, size=len(t[i]))]
               for i in range(N)]
     X = pad_sequences(X_list, maxlen=n_max, value=0., dtype='float')
-    Y = np.c_[w, A, phi, b]
+    Y = np.c_[p, A_cos, A_sin, b]
     
     return X, Y 
 
