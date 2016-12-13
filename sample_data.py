@@ -33,13 +33,14 @@ def periodic(N, n_min, n_max, t_max=None, even=True, A_shape=1., noise_sigma=1.,
     p = w ** -1  # period instead of frequency
 
     X_list = [np.c_[t[i], A_cos[i] * np.cos(2 * np.pi / p[i] * t[i]) +
-                          A_sin[i] * np.sin(2 * np.pi / p[i] * t[i]) + b[i] +
-                          np.random.normal(scale=noise_sigma + 1e-9, size=len(t[i]))]
+                          A_sin[i] * np.sin(2 * np.pi / p[i] * t[i]) + b[i]]
               for i in range(N)]
-    X = pad_sequences(X_list, maxlen=n_max, value=0., dtype='float')
+    X_raw = pad_sequences(X_list, maxlen=n_max, value=np.nan, dtype='float')
+    X = X_raw + np.random.normal(scale=noise_sigma + 1e-9, size=X_raw.shape)
+    X[np.isnan(X)] = -1
     Y = np.c_[p, A_cos, A_sin, b]
     
-    return X, Y 
+    return X, Y, X_raw
 
 
 def synthetic_control(N, n_min, n_max, t_max=None, even=True, sigma=2.):

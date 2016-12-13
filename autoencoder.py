@@ -74,10 +74,9 @@ def main(args=None):
 
     np.random.seed(0)
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
-    X, Y = sample_data.periodic(args.N_train + args.N_test, args.n_min,
-                                args.n_max, t_max=2*np.pi, even=args.even,
-                                A_shape=5., noise_sigma=args.sigma, w_min=0.1,
-                                w_max=1.)
+    X, Y, X_raw = sample_data.periodic(args.N_train + args.N_test, args.n_min, args.n_max,
+                                       t_max=2*np.pi, even=args.even, A_shape=5.,
+                                       noise_sigma=args.sigma, w_min=0.1, w_max=1.)
 
     if args.even:
         X = X[:, :, 1:2]
@@ -108,8 +107,8 @@ def main(args=None):
     else:
         sample_weight = (X[train, :, -1] != -1)
         history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
-                                   X[train, :, 1:2], run, model, sample_weight=sample_weight,
-                                   **vars(args))
+                                   X_raw[train, :, 1:2], run, model,
+                                   sample_weight=sample_weight, **vars(args))
     return X, Y, model, args
 
 
