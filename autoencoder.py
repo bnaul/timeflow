@@ -80,6 +80,7 @@ def main(args=None):
 
     if args.even:
         X = X[:, :, 1:2]
+        X_raw = X_raw[:, :, 1:2]
     else:
         X[:, :, 0] = np.c_[np.diff(X[:, :, 0]), np.zeros(X.shape[0])]
 
@@ -103,7 +104,7 @@ def main(args=None):
     run = ku.get_run_id(**vars(args))
  
     if args.even:
-        history = ku.train_and_log(X[train], X[train], run, model, **vars(args))
+        history = ku.train_and_log(X[train], X_raw[train], run, model, **vars(args))
     else:
         sample_weight = (X[train, :, -1] != -1)
         history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
