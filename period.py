@@ -28,7 +28,9 @@ def main(args=None):
     if args.even:
         X = X[:, :, 1:2]
     else:
-        X[:, :, 0] = np.c_[np.diff(X[:, :, 0]), np.zeros(X.shape[0])]
+        X[:, :, 0] = np.c_[np.diff(X_raw[:, :, 0]), np.zeros(X.shape[0])]
+        X[np.isnan(X)] = -1.
+        X_raw[np.isnan(X_raw)] = -1.
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D}

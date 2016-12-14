@@ -83,7 +83,9 @@ def main(args=None):
         X = X[:, :, 1:2]
         X_raw = X_raw[:, :, 1:2]
     else:
-        X[:, :, 0] = np.c_[np.diff(X[:, :, 0]), np.zeros(X.shape[0])]
+        X[:, :, 0] = np.c_[np.diff(X_raw[:, :, 0]), np.zeros(X.shape[0])]
+        X[np.isnan(X)] = -1.
+        X_raw[np.isnan(X_raw)] = -1.
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D}
@@ -107,7 +109,7 @@ def main(args=None):
     if args.even:
         history = ku.train_and_log(X[train], X_raw[train], run, model, **vars(args))
     else:
-        sample_weight = (X[train, :, -1] != -1)
+        sample_weight = (X[train, :, -1] != -1).astype('float')
         history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
                                    X_raw[train, :, 1:2], run, model,
                                    sample_weight=sample_weight, **vars(args))
