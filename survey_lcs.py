@@ -1,9 +1,16 @@
+import glob
 import numpy as np
 import pandas as pd
 from keras import backend as K
+from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
+                          Dropout, merge, Reshape, Flatten, RepeatVector,
+                          Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
+from keras.models import Model, Sequential
 from keras.preprocessing.sequence import pad_sequences
+
 import keras_util as ku
-from autoencoder import uneven_gru_autoencoder, uneven_lstm_autoencoder
+from autoencoder import encoder, decoder
+
 
 def preprocess(X, m_max):
     # Remove data not in mags
@@ -21,28 +28,9 @@ def preprocess(X, m_max):
     return X, {}
 
 
-if __name__ == '__main__':
-    import argparse
-    import glob
-    parser = argparse.ArgumentParser()
-    parser.add_argument("size", type=int)
-    parser.add_argument("num_layers", type=int)
-    parser.add_argument("drop_frac", type=float)
-    parser.add_argument("--batch_size", type=int, default=50)
-    parser.add_argument("--nb_epoch", type=int, default=100)
-    parser.add_argument("--lr", type=float, default=0.001)
-    parser.add_argument("--loss", type=str, default='mse')
-    parser.add_argument("--model_type", type=str, default='gru')
-    parser.add_argument("--gpu_frac", type=float, default=0.48)
-    parser.add_argument("--gpu_id", type=int, default=0)
-    parser.add_argument("--sim_type", type=str, default='survey_lcs')
-#    parser.add_argument("--filter", type=int, default=5)
-    parser.add_argument("--first_N", type=int, default=None)
-    parser.add_argument("--n_min", type=int, default=100)
-    parser.add_argument("--n_max", type=int, default=1000)
-    parser.add_argument("--m_max", type=int, default=50)
-    parser.add_argument('--embedding', type=int, default=None)
-    args = parser.parse_args()
+def main(args=None):
+    if not args:
+        args = ku.parse_model_args()
 
     np.random.seed(0)
 
@@ -55,26 +43,27 @@ if __name__ == '__main__':
     X_list = [pd.read_csv(f, header=None).sort_values(by=0).values
               for f in filenames[:args.first_N]]
 
-    model_dict = {'gru': uneven_gru_autoencoder,
-                  'lstm': uneven_lstm_autoencoder}
+    model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
+                       'conv': Conv1D, 'atrous': AtrousConv1D}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
     X = pad_sequences(X_list, value=-1., dtype='float', padding='post')
     X, scale_params = preprocess(X, args.m_max)
-    model = model_dict[args.model_type](input_len=X.shape[-1], aux_input_len=2,
-                                        n_step=X.shape[1], size=args.size,
-                                        num_layers=args.num_layers,
-                                        drop_frac=args.drop_frac,
-                                        embedding_size=args.embedding)
+    main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
+    aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
+    model_input = [main_input, aux_input]
+    encode = encoder(main_input, layer=model_type_dict[args.model_type], **vars(args))
+    decode = decoder(encode, layer=model_type_dict[args.model_type], n_step=X.shape[1],
+                     aux_input=aux_input, **vars(args))
+    model = Model(model_input, decode)
 
-    run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(args.model_type, args.size,
-                                                args.num_layers, args.lr,
-                                                int(100 * args.drop_frac)).replace('e-', 'm')
-    if 'conv' in run:
-        run += '_f{}'.format(args.filter)
-    if args.embedding:
-        run += '_emb{}'.format(args.embedding)
+    run = ku.get_run_id(**vars(args))
 
-    sample_weight = (X[:, :, -1] >= 0.)
-
+    sample_weight = (X[:, :, -1] != -1)
     history = ku.train_and_log({'main_input': X, 'aux_input': X[:, :, [0, 2]]}, X[:, :, 1:2],
                                run, model, sample_weight=sample_weight, **vars(args))
+
+    return X, model, args
+
+
+if __name__ == '__main__':
+    X, model, args = main()

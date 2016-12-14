@@ -3,6 +3,7 @@ from functools import wraps
 import json
 import os
 import shutil
+import numpy as np
 import tensorflow as tf
 from keras.optimizers import Adam
 from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping
@@ -34,6 +35,8 @@ def parse_model_args():
     parser.add_argument('--embedding', type=int, default=None)
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument('--batch_norm', dest='batch_norm', action='store_true')
+    parser.add_argument("--first_N", type=int, default=None)
+    parser.add_argument("--m_max", type=float, default=np.inf)
     parser.set_defaults(even=True, batch_norm=False)
     args = parser.parse_args()
     return args

@@ -110,8 +110,8 @@ def main(args=None):
         history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
                                    X_raw[train, :, 1:2], run, model,
                                    sample_weight=sample_weight, **vars(args))
-    return X, Y, model, args
+    return X, Y, X_raw, model, args
 
 
 if __name__ == '__main__':
-    X, Y, model, args = main()
+    X, Y, X_raw, model, args = main()
