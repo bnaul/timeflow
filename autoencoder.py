@@ -1,7 +1,7 @@
 import numpy as np
 from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
-                          Dropout, merge, Reshape, Flatten, RepeatVector,
+                          Dropout, merge, Reshape, Flatten, RepeatVector, Masking,
                           Recurrent, AtrousConv1D, Conv1D,
                           MaxPooling1D, SimpleRNN, BatchNormalization)
 from keras.models import Model, Sequential
@@ -17,6 +17,7 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
         output_size = size
 
     encode = model_input
+#    encode = Masking(mask_value=-1.)(encode)
     for i in range(num_layers):
         kwargs = {}
         if issubclass(layer, Recurrent):
