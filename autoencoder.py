@@ -29,7 +29,8 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
         if issubclass(layer, AtrousConv1D):
             kwargs['atrous_rate'] = 2 ** i
             
-        encode = layer(size if i < (num_layers - 1) else output_size, **kwargs)(encode)
+#        encode = layer(size if i < (num_layers - 1) else output_size, **kwargs)(encode)
+        encode = layer(size, **kwargs)(encode)
         if drop_frac > 0.0:
             encode = Dropout(drop_frac)(encode)
         if batch_norm:
@@ -37,6 +38,7 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
 
     if len(encode.get_shape()) > 2:
         encode = Flatten()(encode)
+    encode = Dense(output_size, activation='relu')(encode)
     return encode
 
 
@@ -44,7 +46,11 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
 # output: just m (output_len==1)
 def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=None,
             batch_norm=False, filter_length=None, **parsed_args):
-    decode = RepeatVector(n_step)(encode)
+    if issubclass(layer, Recurrent):
+        decode = RepeatVector(n_step)(encode)
+    else:
+        decode = Dense(size * n_step, activation='linear')(encode)
+        decode = Reshape((n_step, size))(decode)
     if aux_input is not None:
         decode = merge([aux_input, decode], mode='concat')
 
@@ -65,7 +71,11 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
         if batch_norm:
             decode = BatchNormalization()(decode)
 
-    decode = TimeDistributed(Dense(1, activation='linear'))(decode)
+    if issubclass(layer, Recurrent):
+        decode = TimeDistributed(Dense(1, activation='linear'))(decode)
+    else:
+        decode = layer(1, activation='linear', filter_length=filter_length, border_mode='same')(decode)
+        decode = Reshape((n_step, 1))(decode)
     return decode
 
 
@@ -109,7 +119,7 @@ def main(args=None):
     if args.even:
         history = ku.train_and_log(X[train], X_raw[train], run, model, **vars(args))
     else:
-        sample_weight = (X[train, :, -1] != -1).astype('float')
+        sample_weight = (X[train, :, -1] != -1)
         history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
                                    X_raw[train, :, 1:2], run, model,
                                    sample_weight=sample_weight, **vars(args))

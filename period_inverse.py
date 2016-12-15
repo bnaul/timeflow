@@ -52,7 +52,7 @@ def main(args=None):
         history = ku.train_and_log(Y[train], X[train, :, :], run, model, **vars(args))
     else:
         sample_weight = (X[train, :, -1] != -1)
-        history = ku.train_and_log({'main_input': X[train], 'aux_input': X[train, :, 0:1]},
+        history = ku.train_and_log({'main_input': Y[train], 'aux_input': X[train, :, 0:1]},
                                    X_raw[train, :, 1:2], run, model,
                                    sample_weight=sample_weight, **vars(args))
     return X, Y, model, args
