@@ -17,7 +17,6 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
         output_size = size
 
     encode = model_input
-#    encode = Masking(mask_value=-1.)(encode)
     for i in range(num_layers):
         kwargs = {}
         if issubclass(layer, Recurrent):
@@ -27,7 +26,7 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
             kwargs['filter_length'] = filter_length
             kwargs['border_mode'] = 'same'
         if issubclass(layer, AtrousConv1D):
-            kwargs['atrous_rate'] = 2 ** i
+            kwargs['atrous_rate'] = 2 ** (i % 9)
             
 #        encode = layer(size if i < (num_layers - 1) else output_size, **kwargs)(encode)
         encode = layer(size, **kwargs)(encode)
@@ -38,7 +37,7 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
 
     if len(encode.get_shape()) > 2:
         encode = Flatten()(encode)
-    encode = Dense(output_size, activation='relu')(encode)
+    encode = Dense(output_size, activation='linear')(encode)
     return encode
 
 
