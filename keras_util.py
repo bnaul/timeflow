@@ -9,6 +9,11 @@ from keras.optimizers import Adam
 from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping
 
 
+def times_to_lags(T):
+    """(N x n_step) matrix of times -> (N x n_step) matrix of lags"""
+    return np.c_[np.diff(T), np.zeros(T.shape[0])]
+
+
 def parse_model_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("size", nargs="?", type=int)
@@ -23,7 +28,8 @@ def parse_model_args():
     parser.add_argument("--gpu_frac", type=float, default=0.31)
     parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--sigma", type=float, default=2e-9)
-    parser.add_argument("--sim_type", type=str, default='period')
+    parser.add_argument("--sim_type", type=str)
+    parser.add_argument("--data_type", type=str, default='sinusoid')
     parser.add_argument("--N_train", type=int, default=50000)
     parser.add_argument("--N_test", type=int, default=1000)
     parser.add_argument("--n_min", type=int, default=100)

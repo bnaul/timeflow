@@ -85,15 +85,16 @@ def main(args=None):
 
     np.random.seed(0)
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
-    X, Y, X_raw = sample_data.periodic(args.N_train + args.N_test, args.n_min, args.n_max,
-                                       t_max=2*np.pi, even=args.even, A_shape=5.,
-                                       noise_sigma=args.sigma, w_min=0.1, w_max=1.)
+    X, Y, X_raw, labels, = sample_data.periodic(args.N_train + args.N_test, args.n_min,
+                                                args.n_max, t_max=2*np.pi, even=args.even,
+                                                A_shape=5., noise_sigma=args.sigma,
+                                                w_min=0.1, w_max=1., kind=args.data_type)
 
     if args.even:
         X = X[:, :, 1:2]
         X_raw = X_raw[:, :, 1:2]
     else:
-        X[:, :, 0] = np.c_[np.diff(X_raw[:, :, 0]), np.zeros(X.shape[0])]
+        X[:, :, 0] = ku.times_to_lags(X_raw[:, :, 0])
         X[np.isnan(X)] = -1.
         X_raw[np.isnan(X_raw)] = -1.
 

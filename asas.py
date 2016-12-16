@@ -15,9 +15,6 @@ def main(arg_dict={}):
     import numpy as np
     from keras import backend as K
 
-    import sample_data
-    import keras_util as ku
-
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("size", type=int)

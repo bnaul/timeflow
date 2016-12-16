@@ -11,7 +11,7 @@ DEFAULT_ARGS = {"size": 4, "drop_frac": 0.25, "n_min": 4, "n_max": 10,
                 "nb_epoch": 1, "N_train": 5, "N_test": 5, "sigma": 0.,
                 "loss_weights": None, "gpu_frac": 0.0, "gpu_id": None,
                 "lr": 1e-3, "batch_size": 5, "loss": "mse", "embedding": 1,
-                "filter_length": 3}
+                "filter_length": 3, "data_type": "mixed"}
 
 
 def test_period_conv():

@@ -1,3 +1,4 @@
+# TODO update
 import numpy as np
 from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,

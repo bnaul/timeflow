@@ -1,46 +1,86 @@
+import itertools
 import numpy as np
 from keras.preprocessing.sequence import pad_sequences
 
 
-def random_uneven_times(N, n_min, n_max, a=2, scale=0.05):
-    lags = [scale * np.random.pareto(a, size=np.random.randint(n_min, n_max + 1))
-            for i in range(N)]
-    return [np.concatenate(([0], np.cumsum(lags_i))) for lags_i in lags]
+def phase_to_sin_cos(Y):
+    """Reparametrize sinusoid parameters:
+        w, A, phi, b --> p, A_cos, A_sin, b
+
+    Estimating these parameters seems to be easier in practice.
+    """
+    w, A, phi, b = Y.T
+
+    A_cos = A * np.sin(phi)
+    A_sin = A * np.cos(phi)
+    p = w ** -1
+
+    return np.c_[p, A_cos, A_sin, b]
 
 
-def sinusoid(p, A1, A2, b):
-        return lambda t: A1 * np.cos(2 * np.pi / p * t) + A2 * np.sin(2 * np.pi / p * t) + b
+def _random_times(N, even=True, t_max=2 * np.pi, n_min=None, n_max=None, t_shape=2, t_scale=0.05):
+    if n_min is None and n_max is None:
+        raise ValueError("Either n_min or n_max is required.")
+    elif n_min is None:
+        n_min = n_max
+    elif n_max is None:
+        n_max = n_min
 
-
-def periodic(N, n_min, n_max, t_max=None, even=True, A_shape=1., noise_sigma=1., w_min=0.01,
-             w_max=1., t_shape=2, t_scale=0.05):
-    """Returns sinuosid data (values, (frequency, amplitude, phase, offset))"""
     if even:
-        if t_max is None:
-            t_max = float(n_max)
-        t = [np.linspace(0., t_max, n_max) for i in range(N)]
+        return np.tile(np.linspace(0., t_max, n_max), (N, 1))
     else:
-        t = random_uneven_times(N, n_min, n_max, t_shape, t_scale)
+        lags = [t_scale * np.random.pareto(t_shape, size=np.random.randint(n_min, n_max + 1))
+                for i in range(N)]
+        return [np.r_[0, np.cumsum(lags_i)] for lags_i in lags]
+
+
+def _periodic_params(N, A_shape, w_min, w_max):
     w = np.random.uniform(w_min, w_max, size=N)
     A = np.random.gamma(shape=A_shape, scale=1. / A_shape, size=N)
     phi = 2 * np.pi * np.random.random(size=N)
     b = np.random.normal(scale=1, size=N)
 
-    # freq amp phase -> freq cos_amp sin_amp
-    A_cos = A * np.sin(phi)
-    A_sin = A * np.cos(phi)
+    return w, A, phi, b
 
-    p = w ** -1  # period instead of frequency
 
-    X_list = [np.c_[t[i], A_cos[i] * np.cos(2 * np.pi / p[i] * t[i]) +
-                          A_sin[i] * np.sin(2 * np.pi / p[i] * t[i]) + b[i]]
-              for i in range(N)]
-    X_raw = pad_sequences(X_list, maxlen=n_max, value=np.nan, dtype='float',
-                          padding='post')
-    X = X_raw + np.random.normal(scale=noise_sigma + 1e-9, size=X_raw.shape)
-    Y = np.c_[p, A_cos, A_sin, b]
+def _sinusoid(w, A, phi, b):
+    return lambda t: A * np.sin(2 * np.pi * w * t + phi) + b
+
+
+def _square(w, A, phi, b):
+    return lambda t: A * np.sign(np.sin(2 * np.pi * w * t + phi)) + b
+
+
+def _sawtooth(w, A, phi, b):
+    return lambda t: 2 * A * (w * t - np.floor(1 / 2 + w * t)) + b
+
+
+def _triangular(w, A, phi, b):
+    return lambda t: 4 * A * np.abs(w * t - np.floor(1 / 2 + w * t)) - A + b
+
+
+def periodic(N, n_min, n_max, t_max=2 * np.pi, even=True, A_shape=1.,
+             noise_sigma=0., w_min=0.01, w_max=1., t_shape=2, t_scale=0.05,
+             kind='sinusoid'):
+    """Returns periodic data (values, (freq, amplitude, phase, offset))"""
+    t = _random_times(N, even, t_max, n_min, n_max, t_shape, t_scale)
+    w, A, phi, b = _periodic_params(N, A_shape, w_min, w_max)
+
+    func_dict = {'sinusoid': _sinusoid, 'square': _square,
+                 'triangular': _triangular, 'sawtooth': _sawtooth}
+    if kind == 'mixed':
+        labels = np.array(list(itertools.islice(itertools.cycle(func_dict.keys()), N)))
+        np.random.shuffle(labels)
+    else:
+        labels = np.repeat(kind, N)
+
+    X_list = [np.c_[t[i], func_dict[labels[i]](w[i], A[i], phi[i], b[i])(t[i])] for i in range(N)]
+    X_raw = pad_sequences(X_list, maxlen=n_max, value=np.nan, dtype='float', padding='post')
+    X = X_raw.copy()
+    X[:, :, 1] = X_raw[:, :, 1] + np.random.normal(scale=noise_sigma + 1e-9, size=(N, n_max))
+    Y = np.c_[w, A, phi, b]
     
-    return X, Y, X_raw
+    return X, Y, X_raw, labels
 
 
 def synthetic_control(N, n_min, n_max, t_max=None, even=True, sigma=2.):
