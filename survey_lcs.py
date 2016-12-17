@@ -40,7 +40,8 @@ def main(args=None):
                                       and lengths[f] <= args.n_max]
     filenames = sorted(filenames, key=lambda f: lengths[f])
 
-    X_list = [pd.read_csv(f, header=None).sort_values(by=0).values
+    # use old sort for pandas backwards compatibility
+    X_list = [pd.read_csv(f, header=None).sort(columns=0).values
               for f in filenames[:args.first_N]]
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
