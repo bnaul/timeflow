@@ -108,3 +108,14 @@ def test_autoencoder_rnn():
                                       "model_type": model_type,
                                       "sim_type": log_dir})
                     autoencoder.main(Namespace(**test_args))
+
+
+def test_survey_lcs_conv():
+    for num_layers in [1]:
+        for model_type in ["conv"]:
+            with tempfile.TemporaryDirectory() as log_dir:
+                test_args = DEFAULT_ARGS.copy()
+                test_args.update({"num_layers": num_layers, "even": False,
+                                  "model_type": model_type,
+                                  "sim_type": log_dir})
+                autoencoder.main(Namespace(**test_args))

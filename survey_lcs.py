@@ -12,17 +12,17 @@ import keras_util as ku
 from autoencoder import encoder, decoder
 
 
-def preprocess(X, m_max):
-    # Remove data not in mags
-    wrong_units = X[:, :, 1].max(axis=1) > m_max
+def preprocess(X_raw, m_max):
+    X = X_raw.copy()
+
+    wrong_units = np.nanmax(X[:, :, 1], axis=1) > m_max
     X = X[~wrong_units, :, :]
 
     # Replace times w/ lags
-    X[:, :, 0] = np.c_[np.zeros(X.shape[0]), np.diff(X[:, :, 0])]
+    X[:, :, 0] = ku.times_to_lags(X[:, :, 0])
 
     # Subtract mean magnitude
-    mask_inds = (X[:, :, 2] < 0)
-    global_mean = X[:, :, 1][~mask_inds].mean()
+    global_mean = np.nanmax(X[:, :, 1])
     X[:, :, 1] -= global_mean
 
     return X, {}
@@ -46,8 +46,8 @@ def main(args=None):
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
-    X = pad_sequences(X_list, value=-1., dtype='float', padding='post')
-    X, scale_params = preprocess(X, args.m_max)
+    X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')
+    X, scale_params = preprocess(X_raw, args.m_max)
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
     model_input = [main_input, aux_input]
@@ -58,12 +58,13 @@ def main(args=None):
 
     run = ku.get_run_id(**vars(args))
 
-    sample_weight = (X[:, :, -1] != -1)
+    sample_weight = np.isnan(X[:, :, -1]).astype('float')
+    X[np.isnan(X)] = -1.
     history = ku.train_and_log({'main_input': X, 'aux_input': X[:, :, [0, 2]]}, X[:, :, 1:2],
                                run, model, sample_weight=sample_weight, **vars(args))
 
-    return X, model, args
+    return X, X_raw, model, args
 
 
 if __name__ == '__main__':
-    X, model, args = main()
+    X, X_raw, model, args = main()

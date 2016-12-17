@@ -10,8 +10,19 @@ from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping
 
 
 def times_to_lags(T):
-    """(N x n_step) matrix of times -> (N x n_step) matrix of lags"""
-    return np.c_[np.diff(T), np.zeros(T.shape[0])]
+    """(N x n_step) matrix of times -> (N x n_step) matrix of lags.
+    First time is assumed to be zero.
+    """
+    assert T.ndim == 2, "T must be an (N x n_step) matrix"
+    return np.c_[np.diff(T, axis=1), np.zeros(T.shape[0])]
+
+
+def lags_to_times(dT):
+    """(N x n_step) matrix of lags -> (N x n_step) matrix of times
+    First time is assumed to be zero.
+    """
+    assert dT.ndim == 2, "dT must be an (N x n_step) matrix"
+    return np.c_[np.zeros(dT.shape[0]), np.cumsum(dT[:,:-1], axis=1)]
 
 
 def parse_model_args():
@@ -42,7 +53,7 @@ def parse_model_args():
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument('--batch_norm', dest='batch_norm', action='store_true')
     parser.add_argument("--first_N", type=int, default=None)
-    parser.add_argument("--m_max", type=float, default=np.inf)
+    parser.add_argument("--m_max", type=float, default=32.)
     parser.set_defaults(even=True, batch_norm=False)
     args = parser.parse_args()
     return args
