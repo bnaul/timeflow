@@ -36,6 +36,7 @@ def parse_model_args():
     parser.add_argument("--loss", type=str, default='mse')
     parser.add_argument("--loss_weights", type=float, nargs='*')
     parser.add_argument("--model_type", type=str, default='lstm')
+    parser.add_argument("--decode_type", type=str, default=None)
     parser.add_argument("--gpu_frac", type=float, default=0.31)
     parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--sigma", type=float, default=2e-9)
