@@ -5,6 +5,11 @@ from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
                           Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
+try:
+    from keras.layers import PhasedLSTM
+except:
+    PhasedLSTM = None
+    print("Skipping PhasedLSTM...")
 from keras.models import Model, Sequential
 from keras.preprocessing.sequence import pad_sequences
 
@@ -45,7 +50,7 @@ def main(args=None):
               for f in filenames[:args.first_N]]
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
-                       'conv': Conv1D, 'atrous': AtrousConv1D}
+                       'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
     X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')
     X, scale_params = preprocess(X_raw, args.m_max)
