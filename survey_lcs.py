@@ -64,7 +64,7 @@ def main(args=None):
 
     run = ku.get_run_id(**vars(args))
 
-    sample_weight = np.isnan(X[:, :, -1]).astype('float')
+    sample_weight = (~np.isnan(X[:, :, -1])).astype('float')
     X[np.isnan(X)] = -1.
     history = ku.train_and_log({'main_input': X, 'aux_input': X[:, :, [0, 2]]}, X[:, :, 1:2],
                                run, model, sample_weight=sample_weight, **vars(args))
