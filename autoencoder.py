@@ -110,6 +110,8 @@ def main(args=None):
     if args.even:
         model_input = main_input
         aux_input = None
+        if args.model_type == 'phased':
+            raise NotImplementedError("Phased LSTM not implemented for --even")
     else:
         aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
         model_input = [main_input, aux_input]

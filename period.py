@@ -31,6 +31,8 @@ def main(args=None):
 
     if args.even:
         X = X[:, :, 1:2]
+        if args.model_type == 'phased':
+            raise NotImplementedError("Phased LSTM not implemented for --even")
     else:
         X[:, :, 0] = ku.times_to_lags(X_raw[:, :, 0])
         X[np.isnan(X)] = -1.
