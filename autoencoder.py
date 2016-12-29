@@ -49,6 +49,8 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
 # output: just m (output_len==1)
 def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=None,
             batch_norm=False, filter_length=None, **parsed_args):
+    if drop_frac > 0.0:
+        encode = Dropout(drop_frac)(encode)
     if issubclass(layer, Recurrent):
         decode = RepeatVector(n_step)(encode)
     else:
@@ -69,8 +71,6 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
             kwargs['atrous_rate'] = 2 ** (i % 9)
 
         decode = layer(size, **kwargs)(decode)
-        if drop_frac > 0.0:
-            decode = Dropout(drop_frac)(decode)
         if batch_norm:
             decode = BatchNormalization()(decode)
 
