@@ -40,14 +40,12 @@ def main(args=None):
     np.random.seed(0)
 
     filenames = glob.glob('./data/survey_lcs/*')
-    lengths = {f: sum(1 for line in open(f)) for f in filenames}
-    filenames = [f for f in filenames if lengths[f] >= args.n_min
-                                      and lengths[f] <= args.n_max]
-    filenames = sorted(filenames, key=lambda f: lengths[f])
-
     # use old sort for pandas backwards compatibility
-    X_list = [pd.read_csv(f, header=None).sort(columns=0).values
-              for f in filenames[:args.first_N]]
+    X_list = [pd.read_csv(f, header=None).sort(columns=0).values for f in filenames]
+    # split into length n_min chunks
+    X_list = [el for x in X_list
+              for el in np.array_split(x, np.arange(args.n_max, len(x), step=args.n_max))]
+    X_list = [x for x in X_list if len(x) >= args.n_min]
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
