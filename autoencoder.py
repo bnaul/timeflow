@@ -37,7 +37,7 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
         if drop_frac > 0.0:
             encode = Dropout(drop_frac)(encode)
         if batch_norm:
-            encode = BatchNormalization()(encode)
+            encode = BatchNormalization(mode=2)(encode)
 
     if len(encode.get_shape()) > 2:
         encode = Flatten()(encode)
@@ -72,7 +72,7 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
 
         decode = layer(size, **kwargs)(decode)
         if batch_norm:
-            decode = BatchNormalization()(decode)
+            decode = BatchNormalization(mode=2)(decode)
 
     if issubclass(layer, Recurrent):
         decode = TimeDistributed(Dense(1, activation='linear'))(decode)
