@@ -43,6 +43,7 @@ def main(args=None):
     # use old sort for pandas backwards compatibility
     X_list = [pd.read_csv(f, header=None).sort(columns=0).values for f in filenames]
     # split into length n_min chunks
+    X_list = [x[np.abs(x[:, 1] - np.median(x[:, 1])) <= 8, :] for x in X_list]
     X_list = [el for x in X_list
               for el in np.array_split(x, np.arange(args.n_max, len(x), step=args.n_max))]
     X_list = [x for x in X_list if len(x) >= args.n_min]
