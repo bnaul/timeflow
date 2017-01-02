@@ -30,6 +30,7 @@ def preprocess(X_raw, m_max):
 #    global_mean = np.nanmean(X[:, :, 1])
 #    X[:, :, 1] -= global_mean
     X[:, :, 1] -= np.atleast_2d(np.nanmean(X[:, :, 1], axis=1)).T
+    X[:, :, 1] /= np.atleast_2d(np.nanmax(np.abs(X[:, :, 1]), axis=1)).T
 
     return X, {}
 
