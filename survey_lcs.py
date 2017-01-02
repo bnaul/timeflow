@@ -27,8 +27,9 @@ def preprocess(X_raw, m_max):
     X[:, :, 0] = ku.times_to_lags(X[:, :, 0])
 
     # Subtract mean magnitude
-    global_mean = np.nanmean(X[:, :, 1])
-    X[:, :, 1] -= global_mean
+#    global_mean = np.nanmean(X[:, :, 1])
+#    X[:, :, 1] -= global_mean
+    X[:, :, 1] -= np.atleast_2d(np.nanmean(X[:, :, 1], axis=1)).T
 
     return X, {}
 
