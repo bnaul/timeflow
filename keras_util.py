@@ -57,6 +57,8 @@ def parse_model_args():
     parser.add_argument("--m_max", type=float, default=32.)
     parser.set_defaults(even=True, batch_norm=False)
     args = parser.parse_args()
+    if args.model_type in ['conv', 'atrous'] and args.filter_length is None:
+        parser.error("--model_type {} requires --filter_length".format(args.model_type))
     return args
 
 
