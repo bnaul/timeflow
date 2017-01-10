@@ -1,61 +1,74 @@
 import numpy as np
 from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
-                          Dropout, merge, Reshape, Flatten, RepeatVector)
+                          Dropout, merge, Reshape, Flatten, RepeatVector,
+                          Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
+try:
+    from keras.layers import PhasedLSTM
+except:
+    PhasedLSTM = None
+    print("Skipping PhasedLSTM...")
 from keras.models import Model, Sequential
+from keras.utils.np_utils import to_categorical
+from keras.preprocessing.sequence import pad_sequences
 
+from autoencoder import encoder
 import sample_data
 import keras_util as ku
+import cesium.datasets
 
 
-# TODO update
-def main(arg_dict={}):
-    import argparse
-    import os
-    import numpy as np
-    from keras import backend as K
+def main(args=None):
+    if not args:
+        args = ku.parse_model_args()
 
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("size", type=int)
-    parser.add_argument("num_layers", type=int)
-    parser.add_argument("drop_frac", type=float)
-    parser.add_argument("--batch_size", type=int, default=500)
-    parser.add_argument("--nb_epoch", type=int, default=250)
-    parser.add_argument("--lr", type=float, default=0.002)
-    parser.add_argument("--loss", type=str, default='categorical_crossentropy')
-    parser.add_argument("--model_type", type=str, default='gru')
-    parser.add_argument("--gpu_frac", type=float, default=0.31)
-    parser.add_argument("--gpu_id", type=int, default=0)
-    parser.add_argument("--sigma", type=float, default=2e-9)
-    parser.add_argument("--sim_type", type=str, default='asas')
-    parser.add_argument("--metrics", nargs='+', default=['accuracy'])
-    args = parser.parse_args()
-
-    from keras.utils.np_utils import to_categorical
-    from keras.preprocessing.sequence import pad_sequences
-    from classification import even_gru_classifier as gru
-    from classification import even_conv_classifier as conv
+    args.loss = 'categorical_crossentropy'
 
     np.random.seed(0)
-    X_list = [np.c_[data['times'][i], data['measurements'][i],
-                    data['errors'][i]] for i in range(len(data['times']))]
-    n_max = max(len(t) for t in data['times'])
-    X = pad_sequences(X_list, maxlen=n_max, value=-1., dtype='float')
-    classnames, indices = np.unique(data['classes'], return_inverse=True)
-    Y = to_categorical(indices, len(classnames))
 
-    model_dict = {'gru': uneven_gru_classifier, 'lstm': uneven_lstm_classifier}
+    data = cesium.datasets.fetch_asas_training()
+    top_classes = ['Classical_Cepheid', 'Semireg_PV', 'Mira', 'RR_Lyrae_FM',
+                   'W_Ursae_Maj', 'LSP', 'RSG']
+#    top_classes = np.unique(data['classes'])
+    top_class_inds = np.in1d(data['classes'], top_classes)
+    X_list = [np.c_[t, m, e] for t, m, e in zip(data['times'],
+                                                data['measurements'],
+                                                data['errors'])]
+    X_list = [X_list[i] for i in np.where(top_class_inds)[0]]
+    sub_array_list = [np.array_split(x, np.arange(args.n_max, len(x),
+                                                  step=args.n_max)) for x in
+                      X_list]
+    sub_array_list = [[el for el in x if len(el) >= args.n_min] for x in
+                      sub_array_list]
+    X_list = [el for x in sub_array_list for el in x]
+
+    classnames, indices = np.unique(data['classes'][top_class_inds],
+                                    return_inverse=True)
+    y = np.repeat(indices, [len(x) for x in sub_array_list])
+    Y = to_categorical(y, len(top_classes))
+
+    X_raw = pad_sequences(X_list, value=0., dtype='float', padding='post')
+    #X, scale_params = preprocess(X_raw, args.m_max)
+    X = X_raw.copy()
+
+    # Remove errors
+    X = X[:, :, :2]
+
+    model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
+                       'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
 
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
-    model = model_dict[args.model_type](output_len=Y.shape[-1], n_step=n_max,
-                                        **vars(args))
 
-    run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(args.model_type, args.size,
-                                                args.num_layers, args.lr,
-                                                int(100 * args.drop_frac)).replace('e-', 'm')
-    history = ku.train_and_log(X, Y, run, model, **vars(args))
+    model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
+    encode = encoder(model_input, layer=model_type_dict[args.model_type], **vars(args))
+    out = Dense(Y.shape[-1], activation='softmax')(encode)
+    model = Model(model_input, out)
+
+    run = ku.get_run_id(**vars(args))
+ 
+    history = ku.train_and_log(X, Y, run, model, metrics=['accuracy'], **vars(args))
+    return X, X_raw, Y, model, args
 
 
 if __name__ == '__main__':
-    main()
+    X, X_raw, Y, model, args = main()
