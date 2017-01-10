@@ -45,14 +45,20 @@ def preprocess(X_raw, m_max=None, ls_score_cutoff=None, center=False,
 #    global_mean = np.nanmean(X[:, :, 1])
 #    X[:, :, 1] -= global_mean
     if center:
-        X[:, :, 1] -= np.atleast_2d(np.nanmean(X[:, :, 1], axis=1)).T
+        means = np.atleast_2d(np.nanmean(X[:, :, 1], axis=1)).T
+        X[:, :, 1] -= means
+    else:
+        means = None
     if scale:
-        X[:, :, 1] /= np.atleast_2d(np.nanmax(np.abs(X[:, :, 1]), axis=1)).T
+        scales = np.atleast_2d(np.nanmax(np.abs(X[:, :, 1]), axis=1)).T
+        X[:, :, 1] /= scales
+    else:
+        scales = None
 
     if drop_errors:
         X = X[:, :, :2]
 
-    return X, {}
+    return X, {'means': means, 'scales': scales}
 
 
 def main(args=None):
@@ -83,7 +89,7 @@ def main(args=None):
                        'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
     X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')
-    X, scale_params = preprocess(X_raw, args.m_max)
+    X, scale_params = preprocess(X_raw, args.m_max, None, True, True, True)
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
     model_input = [main_input, aux_input]
