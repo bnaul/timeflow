@@ -17,11 +17,13 @@ import keras_util as ku
 from autoencoder import encoder, decoder
 
 
-def preprocess(X_raw, m_max):
+def preprocess(X_raw, m_max=None, ls_score_cutoff=None, center=False,
+               scale=False, drop_errors=True):
     X = X_raw.copy()
 
-    wrong_units = np.nanmax(X[:, :, 1], axis=1) > m_max
-    X = X[~wrong_units, :, :]
+    if m_max:
+        wrong_units = np.nanmax(X[:, :, 1], axis=1) > m_max
+        X = X[~wrong_units, :, :]
 
 #    # Remove non-periodic
 #    from gatspy.periodic import LombScargleFast
@@ -42,11 +44,13 @@ def preprocess(X_raw, m_max):
     # Subtract mean magnitude
 #    global_mean = np.nanmean(X[:, :, 1])
 #    X[:, :, 1] -= global_mean
-    X[:, :, 1] -= np.atleast_2d(np.nanmean(X[:, :, 1], axis=1)).T
-    X[:, :, 1] /= np.atleast_2d(np.nanmax(np.abs(X[:, :, 1]), axis=1)).T
+    if center:
+        X[:, :, 1] -= np.atleast_2d(np.nanmean(X[:, :, 1], axis=1)).T
+    if scale:
+        X[:, :, 1] /= np.atleast_2d(np.nanmax(np.abs(X[:, :, 1]), axis=1)).T
 
-    # Remove errors (for now)
-    X = X[:, :, :2]
+    if drop_errors:
+        X = X[:, :, :2]
 
     return X, {}
 
