@@ -75,7 +75,8 @@ def main(args=None):
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
     model_input = [main_input, aux_input]
-    encode = encoder(main_input, layer=model_type_dict[args.model_type], **vars(args))
+    encode = encoder(main_input, layer=model_type_dict[args.model_type], 
+                     output_size=args.embedding, **vars(args))
     decode = decoder(encode, layer=model_type_dict[args.model_type], n_step=X.shape[1],
                      aux_input=aux_input, **vars(args))
     model = Model(model_input, decode)

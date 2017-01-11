@@ -1,4 +1,5 @@
 import glob
+import os
 import numpy as np
 import pandas as pd
 from keras import backend as K
@@ -67,23 +68,28 @@ def main(args=None):
 
     np.random.seed(0)
 
-    filenames = glob.glob('./data/asas/*/*')
-    # use old sort for pandas backwards compatibility
-    X_list = [pd.read_csv(f, header=None, comment='#', delim_whitespace=True,
-                           names=['t', 'm', 'm1', 'm2', 'm3', 'm4', 'e',
-                                  'e1', 'e2', 'e3', 'e4', 'grade',
-                                  'frame']).sort(columns='t')
-               for f in filenames]
-    X_list = [x[x.grade < 'C'] for x in X_list]
-#    for x in X_list:
-#        x['m'] = x[['m' + str(i) for i in range(5)]].mean(axis=1)
-#        x['e'] = x[['e' + str(i) for i in range(5)]].mean(axis=1)
-    X_list = [x[['t', 'm', 'e']].values for x in X_list]
-    # split into length n_min chunks
-    X_list = [x[np.abs(x[:, 1] - np.median(x[:, 1])) <= 8, :] for x in X_list]
-    X_list = [el for x in X_list
-              for el in np.array_split(x, np.arange(args.n_max, len(x), step=args.n_max))]
-    X_list = [x for x in X_list if len(x) >= args.n_min]
+    if os.path.exists('data/asas/n200.npz'):
+        print("Loading cached archive n200.npz")
+        assert args.n_min == 200
+        X_list = [v for k, v in np.load('data/asas/n200.npz').items()]
+    else:
+        filenames = glob.glob('./data/asas/*/*')
+        # use old sort for pandas backwards compatibility
+        X_list = [pd.read_csv(f, header=None, comment='#', delim_whitespace=True,
+                               names=['t', 'm', 'm1', 'm2', 'm3', 'm4', 'e',
+                                      'e1', 'e2', 'e3', 'e4', 'grade',
+                                      'frame']).sort(columns='t')
+                   for f in filenames]
+        X_list = [x[x.grade < 'C'] for x in X_list]
+    #    for x in X_list:
+    #        x['m'] = x[['m' + str(i) for i in range(5)]].mean(axis=1)
+    #        x['e'] = x[['e' + str(i) for i in range(5)]].mean(axis=1)
+        X_list = [x[['t', 'm', 'e']].values for x in X_list]
+        # split into length n_min chunks
+        X_list = [x[np.abs(x[:, 1] - np.median(x[:, 1])) <= 8, :] for x in X_list]
+        X_list = [el for x in X_list
+                  for el in np.array_split(x, np.arange(args.n_max, len(x), step=args.n_max))]
+        X_list = [x for x in X_list if len(x) >= args.n_min]
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
@@ -93,7 +99,8 @@ def main(args=None):
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
     model_input = [main_input, aux_input]
-    encode = encoder(main_input, layer=model_type_dict[args.model_type], **vars(args))
+    encode = encoder(main_input, layer=model_type_dict[args.model_type], 
+                     output_size=args.embedding, **vars(args))
     decode = decoder(encode, layer=model_type_dict[args.model_type], n_step=X.shape[1],
                      aux_input=aux_input, **vars(args))
     model = Model(model_input, decode)
