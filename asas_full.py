@@ -18,6 +18,9 @@ import keras_util as ku
 from autoencoder import encoder, decoder
 
 
+# TODO time stamp duplicates?
+# TODO interpolate at different time points
+# TODO play with m_max, maybe check around 14/15? and also m_min around 9?
 def preprocess(X_raw, m_max=None, ls_score_cutoff=None, center=False,
                scale=False, drop_errors=True):
     X = X_raw.copy()
@@ -68,10 +71,10 @@ def main(args=None):
 
     np.random.seed(0)
 
-    if os.path.exists('data/asas/n200.npz'):
-        print("Loading cached archive n200.npz")
+    if os.path.exists('data/asas/n200.npy'):
+        print("Loading cached archive n200.npy")
         assert args.n_min == 200
-        X_list = [v for k, v in np.load('data/asas/n200.npz').items()]
+        X_raw = np.load('data/asas/n200.npy')
     else:
         filenames = glob.glob('./data/asas/*/*')
         # use old sort for pandas backwards compatibility
@@ -90,11 +93,11 @@ def main(args=None):
         X_list = [el for x in X_list
                   for el in np.array_split(x, np.arange(args.n_max, len(x), step=args.n_max))]
         X_list = [x for x in X_list if len(x) >= args.n_min]
+        X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
-    X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')
     X, scale_params = preprocess(X_raw, args.m_max, None, True, True, True)
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
