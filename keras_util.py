@@ -54,7 +54,7 @@ def parse_model_args():
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument('--batch_norm', dest='batch_norm', action='store_true')
     parser.add_argument("--first_N", type=int, default=None)
-    parser.add_argument("--m_max", type=float, default=32.)
+    parser.add_argument("--m_max", type=float, default=15.)
     parser.set_defaults(even=True, batch_norm=False)
     args = parser.parse_args()
     if args.model_type in ['conv', 'atrous'] and args.filter_length is None:
@@ -107,10 +107,11 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
             raise FileNotFoundError("No weights found.")
         shutil.rmtree(log_dir, ignore_errors=True)
         os.makedirs(log_dir)
-        param_log = {key: value for key, value in locals().items()
-                     if key not in ['X', 'Y', 'model', 'optimizer',
-                                    'sample_weight', 'kwargs']}
+        param_log = {key: value for key, value in locals().items()}
         param_log.update(kwargs)
+        param_log = {k: v for k, v in param_log.items()
+                     if k not in ['X', 'Y', 'model', 'optimizer', 'sample_weight',
+                                  'kwargs', 'validation_data']}
         json.dump(param_log, open(os.path.join(log_dir, 'param_log.json'), 'w'),
                   sort_keys=True, indent=2)
         history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size,

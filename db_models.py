@@ -41,10 +41,11 @@ class LightCurve(BaseModel):
         splits = [x for x in np.array_split(inds, np.arange(n_max, len(inds), step=n_max))
                   if len(x) >= n_min]
         return [LightCurve(survey=self.survey, name=self.name,
-                           times=self.times[i], measurements=self.measurements[i],
-                           errors=self.errors[i], best_period=self.best_period,
+                           times=[self.times[i] for i in s],
+                           measurements=[self.measurements[i] for i in s],
+                           errors=[self.errors[i] for i in s], best_period=self.best_period,
                            best_score=self.best_score, label=self.label)
-                for i in inds]
+                for s in splits]
 
 
 

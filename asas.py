@@ -13,9 +13,10 @@ from keras.utils.np_utils import to_categorical
 from keras.preprocessing.sequence import pad_sequences
 
 from autoencoder import encoder
-import sample_data
+from asas_full import preprocess
 import keras_util as ku
-import cesium.datasets
+#import cesium.datasets
+from db_models import db, LightCurve
 
 
 def main(args=None):
@@ -26,33 +27,23 @@ def main(args=None):
 
     np.random.seed(0)
 
-    data = cesium.datasets.fetch_asas_training()
-    top_classes = ['Classical_Cepheid', 'Semireg_PV', 'Mira', 'RR_Lyrae_FM',
-                   'W_Ursae_Maj', 'LSP', 'RSG']
-#    top_classes = np.unique(data['classes'])
-    top_class_inds = np.in1d(data['classes'], top_classes)
-    X_list = [np.c_[t, m, e] for t, m, e in zip(data['times'],
-                                                data['measurements'],
-                                                data['errors'])]
-    X_list = [X_list[i] for i in np.where(top_class_inds)[0]]
-    sub_array_list = [np.array_split(x, np.arange(args.n_max, len(x),
-                                                  step=args.n_max)) for x in
-                      X_list]
-    sub_array_list = [[el for el in x if len(el) >= args.n_min] for x in
-                      sub_array_list]
-    X_list = [el for x in sub_array_list for el in x]
+    top_classes = ['Mira', 'RR_Lyrae_FM', 'W_Ursae_Maj']
+    full = LightCurve.select().where(LightCurve.label << top_classes)
+    split = [el for lc in full for el in lc.split(args.n_min, args.n_max)]
+    X_list = [np.c_[lc.times, lc.measurements, lc.errors] for lc in split]
 
-    classnames, indices = np.unique(data['classes'][top_class_inds],
-                                    return_inverse=True)
-    y = np.repeat(indices, [len(x) for x in sub_array_list])
-    Y = to_categorical(y, len(top_classes))
+    classnames, indices = np.unique([lc.label for lc in split], return_inverse=True)
+    Y = to_categorical(indices, len(classnames))
 
     X_raw = pad_sequences(X_list, value=0., dtype='float', padding='post')
-    #X, scale_params = preprocess(X_raw, args.m_max)
-    X = X_raw.copy()
+    X, scale_params = preprocess(X_raw, args.m_max, True, True, True)
+    Y = Y[~scale_params['wrong_units']]
 
     # Remove errors
     X = X[:, :, :2]
+
+    train = np.sort(np.random.choice(np.arange(len(X)), int(len(X) * 0.8), replace=False))
+    valid = np.arange(len(X))[~np.in1d(np.arange(len(X)), train)]
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
@@ -61,12 +52,23 @@ def main(args=None):
 
     model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     encode = encoder(model_input, layer=model_type_dict[args.model_type], **vars(args))
-    out = Dense(Y.shape[-1], activation='softmax')(encode)
-    model = Model(model_input, out)
+    
+    scale_param_input = Input(shape=(2,), name='scale_params')
+    merged = merge([encode, scale_param_input], mode='concat')
+
+    out = Dense(args.size + 2, activation='relu')(merged)
+    out = Dense(Y.shape[-1], activation='softmax')(out)
+    model = Model([model_input, scale_param_input], out)
 
     run = ku.get_run_id(**vars(args))
- 
-    history = ku.train_and_log(X, Y, run, model, metrics=['accuracy'], **vars(args))
+
+    history = ku.train_and_log([X[train], np.c_[scale_params['means'],
+                                                scale_params['scales']][train]],
+                               Y[train], run, model, metrics=['accuracy'],
+                               validation_data=([X[valid], np.c_[scale_params['means'],
+                                                       scale_params['scales']][valid]],
+                                                Y[valid]),
+                               **vars(args))
     return X, X_raw, Y, model, args
 
 

@@ -18,36 +18,17 @@ import keras_util as ku
 from autoencoder import encoder, decoder
 
 
-# TODO time stamp duplicates?
 # TODO interpolate at different time points
-# TODO play with m_max, maybe check around 14/15? and also m_min around 9?
-def preprocess(X_raw, m_max=None, ls_score_cutoff=None, center=False,
-               scale=False, drop_errors=True):
+def preprocess(X_raw, m_max=None, center=False, scale=False, drop_errors=True):
     X = X_raw.copy()
 
     if m_max:
         wrong_units = np.nanmax(X[:, :, 1], axis=1) > m_max
         X = X[~wrong_units, :, :]
 
-#    # Remove non-periodic
-#    from gatspy.periodic import LombScargleFast
-#    best_scores = np.zeros(len(X))
-#    for i in range(len(X)):
-#        t = X[i, :, 0]
-#        m = X[i, :, 1]
-#        opt_args = {'period_range': (0.05 * (t.max() - t.min()), 0.95 * (t.max() - t.min())), 'quiet': True}
-#        model_gat = LombScargleFast(fit_period=True, optimizer_kwds=opt_args,
-#                                    silence_warnings=True)
-#        model_gat.fit(t, m)
-#        best_scores[i] = model_gat.score(model_gat.best_period).item()
-#    X = X[best_scores > 0.075]
-
     # Replace times w/ lags
     X[:, :, 0] = ku.times_to_lags(X[:, :, 0])
 
-    # Subtract mean magnitude
-#    global_mean = np.nanmean(X[:, :, 1])
-#    X[:, :, 1] -= global_mean
     if center:
         means = np.atleast_2d(np.nanmean(X[:, :, 1], axis=1)).T
         X[:, :, 1] -= means
@@ -62,7 +43,7 @@ def preprocess(X_raw, m_max=None, ls_score_cutoff=None, center=False,
     if drop_errors:
         X = X[:, :, :2]
 
-    return X, {'means': means, 'scales': scales}
+    return X, {'means': means, 'scales': scales, 'wrong_units': wrong_units}
 
 
 def main(args=None):
@@ -98,7 +79,7 @@ def main(args=None):
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
-    X, scale_params = preprocess(X_raw, args.m_max, None, True, True, True)
+    X, scale_params = preprocess(X_raw, args.m_max, True, True, True)
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
     model_input = [main_input, aux_input]
