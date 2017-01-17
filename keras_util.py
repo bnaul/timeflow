@@ -90,7 +90,7 @@ def limited_memory_session(gpu_frac, gpu_id):
 
 def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                   metrics=[], sample_weight=None, no_train=False, patience=20,
-                  **kwargs):
+                  validation_data=None, **kwargs):
     optimizer = Adam(lr=lr)
     print(metrics)
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics,
@@ -119,6 +119,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                                                              TensorBoard(log_dir=log_dir,
                                                                          write_graph=False),
                                                              EarlyStopping(patience=patience)],
-                            sample_weight=sample_weight)
+                            sample_weight=sample_weight,
+                            validation_data=validation_data)
         model.save_weights(os.path.join(log_dir, 'weights.h5'), overwrite=True)
     return history
