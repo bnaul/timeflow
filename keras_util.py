@@ -55,6 +55,7 @@ def parse_model_args():
     parser.add_argument('--batch_norm', dest='batch_norm', action='store_true')
     parser.add_argument("--first_N", type=int, default=None)
     parser.add_argument("--m_max", type=float, default=15.)
+    parser.add_argument('--pretrain', type=str, default=None)
     parser.set_defaults(even=True, batch_norm=False)
     args = parser.parse_args()
     if args.model_type in ['conv', 'atrous'] and args.filter_length is None:

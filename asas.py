@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
@@ -51,8 +52,10 @@ def main(args=None):
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
 
     model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
-    encode = encoder(model_input, layer=model_type_dict[args.model_type], **vars(args))
+    encode = encoder(model_input, layer=model_type_dict[args.model_type],
+                     output_size=args.embedding, **vars(args))
     
+    scale_param_array = np.c_[scale_params['means'], scale_params['scales']]
     scale_param_input = Input(shape=(2,), name='scale_params')
     merged = merge([encode, scale_param_input], mode='concat')
 
@@ -62,12 +65,16 @@ def main(args=None):
 
     run = ku.get_run_id(**vars(args))
 
-    history = ku.train_and_log([X[train], np.c_[scale_params['means'],
-                                                scale_params['scales']][train]],
-                               Y[train], run, model, metrics=['accuracy'],
-                               validation_data=([X[valid], np.c_[scale_params['means'],
-                                                       scale_params['scales']][valid]],
-                                                Y[valid]),
+    if args.pretrain:
+        model.load_weights(os.path.join('keras_logs', args.pretrain, run, 'weights.h5'),
+                           by_name=True)
+        encoding_index = np.where([l.name == 'encoding' for l in model.layers])[0].item()
+        for layer in model.layers[:encoding_index + 1]:
+            layer.trainable = False
+
+    history = ku.train_and_log([X[train], scale_param_array[train]], Y[train],
+                               run, model, metrics=['accuracy'],
+                               validation_data=([X[valid], scale_param_array[valid]], Y[valid]),
                                **vars(args))
     return X, X_raw, Y, model, args
 

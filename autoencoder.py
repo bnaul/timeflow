@@ -33,14 +33,14 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
         if issubclass(layer, AtrousConv1D):
             kwargs['atrous_rate'] = 2 ** (i % 9)
             
-        encode = layer(size, **kwargs)(encode)
+        encode = layer(size, name='encode_{}'.format(i), **kwargs)(encode)
         if drop_frac > 0.0:
-            encode = Dropout(drop_frac)(encode)
+            encode = Dropout(drop_frac, name='drop_encode_{}'.format(i))(encode)
         if batch_norm:
-            encode = BatchNormalization(mode=2)(encode)
+            encode = BatchNormalization(mode=2, name='bn_encode_{}'.format(i))(encode)
 
     if len(encode.get_shape()) > 2:
-        encode = Flatten()(encode)
+        encode = Flatten(name='flatten')(encode)
     encode = Dense(output_size, activation='linear', name='encoding')(encode)
     return encode
 
@@ -50,12 +50,12 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
 def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=None,
             batch_norm=False, filter_length=None, **parsed_args):
     if drop_frac > 0.0:
-        encode = Dropout(drop_frac)(encode)
+        encode = Dropout(drop_frac, name='drop_decode')(encode)
     if issubclass(layer, Recurrent):
-        decode = RepeatVector(n_step)(encode)
+        decode = RepeatVector(n_step, name='repeat')(encode)
     else:
-        decode = Dense(size * n_step, activation='linear')(encode)
-        decode = Reshape((n_step, size))(decode)
+        decode = Dense(size * n_step, activation='linear', name='dense_linear')(encode)
+        decode = Reshape((n_step, size), name='reshape_linear')(decode)
     if aux_input is not None:
         decode = merge([aux_input, decode], mode='concat')
 
@@ -70,15 +70,16 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
         if issubclass(layer, AtrousConv1D):
             kwargs['atrous_rate'] = 2 ** (i % 9)
 
-        decode = layer(size, **kwargs)(decode)
+        decode = layer(size, name='decode_{}'.format(i), **kwargs)(decode)
         if batch_norm:
-            decode = BatchNormalization(mode=2)(decode)
+            decode = BatchNormalization(mode=2, name='bn_decode_{}'.format(i))(decode)
 
     if issubclass(layer, Recurrent):
-        decode = TimeDistributed(Dense(1, activation='linear'))(decode)
+        decode = TimeDistributed(Dense(1, activation='linear'), name='time_dist')(decode)
     else:
-        decode = layer(1, activation='linear', filter_length=filter_length, border_mode='same')(decode)
-        decode = Reshape((n_step, 1))(decode)
+        decode = layer(1, activation='linear', filter_length=filter_length,
+                       border_mode='same', name='conv_linear')(decode)
+        decode = Reshape((n_step, 1), name='reshape_out')(decode)
     return decode
 
 

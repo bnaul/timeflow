@@ -16,6 +16,7 @@ from keras.preprocessing.sequence import pad_sequences
 
 import keras_util as ku
 from autoencoder import encoder, decoder
+from db_models import db, LightCurve
 
 
 # TODO interpolate at different time points
@@ -52,29 +53,27 @@ def main(args=None):
 
     np.random.seed(0)
 
-    if os.path.exists('data/asas/n200.npy'):
-        print("Loading cached archive n200.npy")
-        assert args.n_min == 200
-        X_raw = np.load('data/asas/n200.npy')
-    else:
-        filenames = glob.glob('./data/asas/*/*')
-        # use old sort for pandas backwards compatibility
-        X_list = [pd.read_csv(f, header=None, comment='#', delim_whitespace=True,
-                               names=['t', 'm', 'm1', 'm2', 'm3', 'm4', 'e',
-                                      'e1', 'e2', 'e3', 'e4', 'grade',
-                                      'frame']).sort(columns='t')
-                   for f in filenames]
-        X_list = [x[x.grade < 'C'] for x in X_list]
-    #    for x in X_list:
-    #        x['m'] = x[['m' + str(i) for i in range(5)]].mean(axis=1)
-    #        x['e'] = x[['e' + str(i) for i in range(5)]].mean(axis=1)
-        X_list = [x[['t', 'm', 'e']].values for x in X_list]
-        # split into length n_min chunks
-        X_list = [x[np.abs(x[:, 1] - np.median(x[:, 1])) <= 8, :] for x in X_list]
-        X_list = [el for x in X_list
-                  for el in np.array_split(x, np.arange(args.n_max, len(x), step=args.n_max))]
-        X_list = [x for x in X_list if len(x) >= args.n_min]
-        X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')
+#    filenames = glob.glob('./data/asas/*/*')
+#    # use old sort for pandas backwards compatibility
+#    X_list = [pd.read_csv(f, header=None, comment='#', delim_whitespace=True,
+#                           names=['t', 'm', 'm1', 'm2', 'm3', 'm4', 'e',
+#                                  'e1', 'e2', 'e3', 'e4', 'grade',
+#                                  'frame']).sort(columns='t')
+#               for f in filenames]
+#    X_list = [x[x.grade < 'C'] for x in X_list]
+##    for x in X_list:
+##        x['m'] = x[['m' + str(i) for i in range(5)]].mean(axis=1)
+##        x['e'] = x[['e' + str(i) for i in range(5)]].mean(axis=1)
+#    X_list = [x[['t', 'm', 'e']].values for x in X_list]
+#    # split into length n_min chunks
+#    X_list = [x[np.abs(x[:, 1] - np.median(x[:, 1])) <= 8, :] for x in X_list]
+#    X_list = [el for x in X_list
+#              for el in np.array_split(x, np.arange(args.n_max, len(x), step=args.n_max))]
+#    X_list = [x for x in X_list if len(x) >= args.n_min]
+    full = LightCurve.select()
+    split = [el for lc in full for el in lc.split(args.n_min, args.n_max)]
+    X_list = [np.c_[lc.times, lc.measurements, lc.errors] for lc in split]
+    X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
@@ -93,8 +92,9 @@ def main(args=None):
 
     sample_weight = (~np.isnan(X[:, :, -1])).astype('float')
     X[np.isnan(X)] = -1.
-    history = ku.train_and_log({'main_input': X, 'aux_input': X[:, :, [0,]]}, X[:, :, 1:],
-                               run, model, sample_weight=sample_weight, **vars(args))
+    history = ku.train_and_log({'main_input': X, 'aux_input': np.delete(X, 1, axis=2)},
+                               X[:, :, 1:], run, model, sample_weight=sample_weight,
+                               **vars(args))
 
     return X, X_raw, model, args
 
