@@ -43,6 +43,9 @@ def main(args=None):
     # Remove errors
     X = X[:, :, :2]
 
+    if args.even:
+        X = X[:, :, 1:]
+
     train = np.sort(np.random.choice(np.arange(len(X)), int(len(X) * 0.8), replace=False))
     valid = np.arange(len(X))[~np.in1d(np.arange(len(X)), train)]
 

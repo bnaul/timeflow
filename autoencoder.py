@@ -120,7 +120,7 @@ def main(args=None):
                      output_size=args.embedding, **vars(args))
     decode = decoder(encode, layer=model_type_dict[args.decode_type if args.decode_type
                                                    else args.model_type],
-                     n_step=X.shape[1], output_size=args.embedding, aux_input=aux_input,
+                     n_step=X.shape[1], aux_input=aux_input,
                      **vars(args))
     model = Model(model_input, decode)
 
