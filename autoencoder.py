@@ -17,7 +17,7 @@ import keras_util as ku
 
 # input: (t, m, e), (t, m), or (m)
 def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=False,
-            output_size=None, filter_length=None, **parsed_args):
+            output_size=None, filter_length=None, pool=None, **parsed_args):
     if output_size is None:
         output_size = size
 
@@ -34,10 +34,13 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
             kwargs['atrous_rate'] = 2 ** (i % 9)
             
         encode = layer(size, name='encode_{}'.format(i), **kwargs)(encode)
-        if drop_frac > 0.0:
-            encode = Dropout(drop_frac, name='drop_encode_{}'.format(i))(encode)
-        if batch_norm:
-            encode = BatchNormalization(mode=2, name='bn_encode_{}'.format(i))(encode)
+        if i < num_layers - 1:  # skip these for last layer
+            if drop_frac > 0.0:
+                encode = Dropout(drop_frac, name='drop_encode_{}'.format(i))(encode)
+            if batch_norm:
+                encode = BatchNormalization(mode=2, name='bn_encode_{}'.format(i))(encode)
+            if pool:
+                encode = MaxPooling1D(pool, name='pool_{}'.format(i))(encode)
 
     if len(encode.get_shape()) > 2:
         encode = Flatten(name='flatten')(encode)

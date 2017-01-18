@@ -6,7 +6,7 @@ import shutil
 import numpy as np
 import tensorflow as tf
 from keras.optimizers import Adam
-from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping
+from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping, ModelCheckpoint
 
 
 def times_to_lags(T):
@@ -53,6 +53,7 @@ def parse_model_args():
     parser.add_argument('--embedding', type=int, default=None)
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument('--batch_norm', dest='batch_norm', action='store_true')
+    parser.add_argument('--pool', type=int, default=None)
     parser.add_argument("--first_N", type=int, default=None)
     parser.add_argument("--m_max", type=float, default=15.)
     parser.add_argument('--pretrain', type=str, default=None)
@@ -64,7 +65,7 @@ def parse_model_args():
 
 
 def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=None,
-               embedding=None, batch_norm=False, **kwargs):
+               embedding=None, batch_norm=False, pool=None, **kwargs):
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(model_type, size,
                                                 num_layers, lr,
                                                 int(100 * drop_frac)).replace('e-', 'm')
@@ -74,6 +75,8 @@ def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=No
         run += '_f{}'.format(filter_length)
     if embedding:
         run += '_emb{}'.format(embedding)
+    if pool:
+        run += '_pool{}'.format(pool)
 
     return run
 
@@ -99,10 +102,11 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
 
     log_dir = os.path.join(os.getcwd(), 'keras_logs', sim_type, run)
     print(log_dir)
-    if os.path.exists(os.path.join(log_dir, 'weights.h5')):
-        print("Loading {}...".format(os.path.join(log_dir, 'weights.h5')))
+    weights_path = os.path.join(log_dir, 'weights.h5')
+    if os.path.exists(weights_path):
+        print("Loading {}...".format(weights_path))
         history = []
-        model.load_weights(os.path.join(log_dir, 'weights.h5'))
+        model.load_weights(weights_path)
     else:
         if no_train:
             raise FileNotFoundError("No weights found.")
@@ -115,12 +119,11 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                                   'kwargs', 'validation_data']}
         json.dump(param_log, open(os.path.join(log_dir, 'param_log.json'), 'w'),
                   sort_keys=True, indent=2)
-        history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size,
-                            validation_split=0.2, callbacks=[ProgbarLogger(),
-                                                             TensorBoard(log_dir=log_dir,
-                                                                         write_graph=False),
-                                                             EarlyStopping(patience=patience)],
+        history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size, validation_split=0.2,
+                            callbacks=[ProgbarLogger(),
+                                       TensorBoard(log_dir=log_dir, write_graph=False),
+                                       EarlyStopping(patience=patience),
+                                       ModelCheckpoint(weights_path, save_weights_only=True)],
                             sample_weight=sample_weight,
                             validation_data=validation_data)
-        model.save_weights(os.path.join(log_dir, 'weights.h5'), overwrite=True)
     return history
