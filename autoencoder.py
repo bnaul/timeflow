@@ -3,7 +3,7 @@ from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector, Masking,
                           Recurrent, AtrousConv1D, Conv1D,
-                          MaxPooling1D, SimpleRNN, BatchNormalization)
+                          MaxPooling1D, UpSampling1D, SimpleRNN, BatchNormalization)
 try:
     from keras.layers import PhasedLSTM
 except:
@@ -40,7 +40,7 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
             if batch_norm:
                 encode = BatchNormalization(mode=2, name='bn_encode_{}'.format(i))(encode)
             if pool:
-                encode = MaxPooling1D(pool, name='pool_{}'.format(i))(encode)
+                encode = MaxPooling1D(pool, border_mode='same', name='pool_{}'.format(i))(encode)
 
     if len(encode.get_shape()) > 2:
         encode = Flatten(name='flatten')(encode)
@@ -51,18 +51,29 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
 # aux input: (t) or (t, e) or None
 # output: just m (output_len==1)
 def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=None,
-            batch_norm=False, filter_length=None, **parsed_args):
-    if drop_frac > 0.0:
-        encode = Dropout(drop_frac, name='drop_decode')(encode)
+            batch_norm=False, filter_length=None, pool=None, **parsed_args):
     if issubclass(layer, Recurrent):
         decode = RepeatVector(n_step, name='repeat')(encode)
     else:
-        decode = Dense(size * n_step, activation='linear', name='dense_linear')(encode)
-        decode = Reshape((n_step, size), name='reshape_linear')(decode)
+        if pool:
+            n_step_init = n_step // (pool ** (num_layers - 1)) 
+        else:
+            n_step_init = n_step
+        decode = Dense(1 * n_step_init, activation='linear', name='dense_linear')(encode)
+        decode = Reshape((n_step_init, 1), name='reshape_linear')(decode)
+
     if aux_input is not None:
         decode = merge([aux_input, decode], mode='concat')
 
     for i in range(num_layers):
+        if i > 0:  # skip these for first layer (for symmetry)
+            if batch_norm:
+                decode = BatchNormalization(mode=2, name='bn_decode_{}'.format(i))(decode)
+            if drop_frac > 0.0:
+                decode = Dropout(drop_frac, name='drop_decode')(decode)
+            if pool:
+                decode = UpSampling1D(pool, name='upsample_{}'.format(i))(decode)
+
         kwargs = {}
         if issubclass(layer, Recurrent):
             kwargs['return_sequences'] = True
@@ -74,8 +85,6 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
             kwargs['atrous_rate'] = 2 ** (i % 9)
 
         decode = layer(size, name='decode_{}'.format(i), **kwargs)(decode)
-        if batch_norm:
-            decode = BatchNormalization(mode=2, name='bn_decode_{}'.format(i))(decode)
 
     if issubclass(layer, Recurrent):
         decode = TimeDistributed(Dense(1, activation='linear'), name='time_dist')(decode)
