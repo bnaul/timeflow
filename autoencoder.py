@@ -55,10 +55,10 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
     if issubclass(layer, Recurrent):
         decode = RepeatVector(n_step, name='repeat')(encode)
     else:
-        if pool:
-            n_step_init = n_step // (pool ** (num_layers - 1)) 
-        else:
-            n_step_init = n_step
+#        if pool:
+#            n_step_init = n_step // (pool ** (num_layers - 1)) 
+#        else:
+        n_step_init = n_step
         decode = Dense(1 * n_step_init, activation='linear', name='dense_linear')(encode)
         decode = Reshape((n_step_init, 1), name='reshape_linear')(decode)
 
@@ -70,9 +70,10 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
             if batch_norm:
                 decode = BatchNormalization(mode=2, name='bn_decode_{}'.format(i))(decode)
             if drop_frac > 0.0:
-                decode = Dropout(drop_frac, name='drop_decode')(decode)
+                decode = Dropout(drop_frac, name='drop_decode_{}'.format(i))(decode)
             if pool:
-                decode = UpSampling1D(pool, name='upsample_{}'.format(i))(decode)
+#                decode = UpSampling1D(pool, name='upsample_{}'.format(i))(decode)
+                pass
 
         kwargs = {}
         if issubclass(layer, Recurrent):
