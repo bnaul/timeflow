@@ -56,6 +56,7 @@ def parse_model_args():
     parser.add_argument('--pool', type=int, default=None)
     parser.add_argument("--first_N", type=int, default=None)
     parser.add_argument("--m_max", type=float, default=15.)
+    parser.add_argument("--lomb_score", type=float, default=None)
     parser.add_argument('--pretrain', type=str, default=None)
     parser.set_defaults(even=False, batch_norm=False)
     args = parser.parse_args()

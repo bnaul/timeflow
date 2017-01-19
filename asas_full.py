@@ -71,6 +71,8 @@ def main(args=None):
 #              for el in np.array_split(x, np.arange(args.n_max, len(x), step=args.n_max))]
 #    X_list = [x for x in X_list if len(x) >= args.n_min]
     full = LightCurve.select()
+    if args.lomb_score:
+        full = full.where(LightCurve.best_score >= args.lomb_score)
     split = [el for lc in full for el in lc.split(args.n_min, args.n_max)]
     X_list = [np.c_[lc.times, lc.measurements, lc.errors] for lc in split]
     X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')
