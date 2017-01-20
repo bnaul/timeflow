@@ -86,8 +86,9 @@ def main(args=None):
     model_input = [main_input, aux_input]
     encode = encoder(main_input, layer=model_type_dict[args.model_type], 
                      output_size=args.embedding, **vars(args))
-    decode = decoder(encode, layer=model_type_dict[args.model_type], n_step=X.shape[1],
-                     aux_input=aux_input, **vars(args))
+    decode = decoder(encode, layer=model_type_dict[args.decode_type if args.decode_type
+                                                   else args.model_type],
+                     n_step=X.shape[1], aux_input=aux_input, **vars(args))
     model = Model(model_input, decode)
 
     run = ku.get_run_id(**vars(args))
