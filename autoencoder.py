@@ -103,9 +103,10 @@ def main(args=None):
     np.random.seed(0)
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
     X, Y, X_raw, labels, = sample_data.periodic(args.N_train + args.N_test, args.n_min,
-                                                args.n_max, t_max=2*np.pi, even=args.even,
+                                                args.n_max, t_max=2 * np.pi, even=args.even,
                                                 A_shape=5., noise_sigma=args.sigma,
-                                                w_min=0.1, w_max=1., kind=args.data_type)
+                                                w_min=0.1, w_max=1., kind=args.data_type,
+                                                t_scale=1.0)
 
     if args.even:
         X = X[:, :, 1:2]
