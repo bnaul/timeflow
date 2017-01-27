@@ -66,7 +66,7 @@ def parse_model_args():
 
 
 def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=None,
-               embedding=None, batch_norm=False, pool=None, **kwargs):
+               embedding=None, batch_norm=False, pool=None, decode_type=None, **kwargs):
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(model_type, size,
                                                 num_layers, lr,
                                                 int(100 * drop_frac)).replace('e-', 'm')
@@ -78,6 +78,8 @@ def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=No
         run += '_emb{}'.format(embedding)
     if pool:
         run += '_pool{}'.format(pool)
+    if decode_type:
+        run += '_decode{}'.format(decode_type)
 
     return run
 
