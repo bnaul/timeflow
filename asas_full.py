@@ -6,11 +6,7 @@ from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
                           Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
-try:
-    from keras.layers import PhasedLSTM
-except:
-    PhasedLSTM = None
-    print("Skipping PhasedLSTM...")
+from custom_layers import PhasedLSTM
 from keras.models import Model, Sequential
 from keras.preprocessing.sequence import pad_sequences
 
