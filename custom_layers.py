@@ -88,9 +88,9 @@ class PhasedLSTM(Recurrent):
                             name='{}_b'.format(self.name))
 
         # all three variables (period, phase and r_on) are learnable
-        self.timegate = K.variable(np.vstack((np.random.uniform(10, 100, self.output_dim),
+        self.timegate = K.variable(np.vstack((np.random.uniform(0.05, 25, self.output_dim),
                                               np.random.uniform(0, 1000, self.output_dim),
-                                              np.zeros(self.output_dim)+0.05)),
+                                              np.zeros(self.output_dim) + 0.05)),
                                    name='{}_tgate'.format(self.name))
 
         self.trainable_weights = [self.W, self.U, self.b, self.timegate]
