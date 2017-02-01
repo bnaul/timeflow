@@ -12,7 +12,10 @@ from keras.preprocessing.sequence import pad_sequences
 
 import keras_util as ku
 from autoencoder import encoder, decoder
-from db_models import db, LightCurve
+try:
+    from db_models import LightCurve
+except:
+    LightCurve = None
 
 
 # TODO interpolate at different time points
@@ -49,28 +52,47 @@ def main(args=None):
 
     np.random.seed(0)
 
-#    filenames = glob.glob('./data/asas/*/*')
-#    # use old sort for pandas backwards compatibility
-#    X_list = [pd.read_csv(f, header=None, comment='#', delim_whitespace=True,
-#                           names=['t', 'm', 'm1', 'm2', 'm3', 'm4', 'e',
-#                                  'e1', 'e2', 'e3', 'e4', 'grade',
-#                                  'frame']).sort(columns='t')
-#               for f in filenames]
-#    X_list = [x[x.grade < 'C'] for x in X_list]
-##    for x in X_list:
-##        x['m'] = x[['m' + str(i) for i in range(5)]].mean(axis=1)
-##        x['e'] = x[['e' + str(i) for i in range(5)]].mean(axis=1)
-#    X_list = [x[['t', 'm', 'e']].values for x in X_list]
-#    # split into length n_min chunks
-#    X_list = [x[np.abs(x[:, 1] - np.median(x[:, 1])) <= 8, :] for x in X_list]
-#    X_list = [el for x in X_list
-#              for el in np.array_split(x, np.arange(args.n_max, len(x), step=args.n_max))]
-#    X_list = [x for x in X_list if len(x) >= args.n_min]
-    full = LightCurve.select()
-    if args.lomb_score:
-        full = full.where(LightCurve.best_score >= args.lomb_score)
-    split = [el for lc in full for el in lc.split(args.n_min, args.n_max)]
-    X_list = [np.c_[lc.times, lc.measurements, lc.errors] for lc in split]
+    if LightCurve is not None:
+        full = LightCurve.select()
+        if args.lomb_score:
+            full = full.where(LightCurve.best_score >= args.lomb_score)
+        split = [el for lc in full for el in lc.split(args.n_min, args.n_max)]
+        X_list = [np.c_[lc.times, lc.measurements, lc.errors] for lc in split]
+    else:
+        print("DB could not be loaded; reading from disk...")
+        from gatspy.periodic import LombScargleFast
+        try:
+            from StringIO import StringIO
+        except:
+            from io import StringIO
+        X_list = []
+	for fname in glob.glob('./data/asas/*/*'):
+	    with open(fname) as f:
+		dfs = [pd.read_csv(StringIO(chunk), comment='#', delim_whitespace=True) for chunk in f.read().split('#     ')[1:]]
+		if len(dfs) > 0:
+		    df = pd.concat(dfs)[['HJD', 'MAG_0', 'MER_0', 'GRADE']].sort(columns='HJD')
+		    df = df[df.GRADE <= 'B']
+		    df.drop_duplicates(subset=['HJD'], inplace=True)  #keep='first'
+                    X_i = df[['HJD', 'MAG_0', 'MER_0']].values
+
+                    if args.lomb_score:
+                        ls_params = {'period_range': (0.005 * (max(X_i[:, 0]) - min(X_i[:, 0])),
+                                                      0.95 * (max(X_i[:, 0]) - min(X_i[:, 0]))),
+                                     'quiet': True}
+                        model_gat = LombScargleFast(fit_period=True,
+                                                    optimizer_kwds=ls_params,
+                                                    silence_warnings=True)
+                        model_gat.fit(X_i[:, 0], X_i[:, 1], X_i[:, 2])
+                        if model_gat.score(model_gat.best_period) < args.lomb_score:
+                            continue
+
+                    X_list.append(X_i)
+
+        # split into length n_min chunks
+        X_list = [el for x in X_list
+                  for el in np.array_split(x, np.arange(args.n_max, len(x), step=args.n_max))]
+        X_list = [x for x in X_list if len(x) >= args.n_min]
+
     X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
