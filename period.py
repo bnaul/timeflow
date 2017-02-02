@@ -51,8 +51,8 @@ def main(args=None):
     run = ku.get_run_id(**vars(args))
  
     history = ku.train_and_log(X[train], Y[train], run, model, **vars(args))
-    return X, Y, model
+    return X, Y, model, args
 
 
 if __name__ == '__main__':
-    X, Y, model = main()
+    X, Y, model, args = main()
