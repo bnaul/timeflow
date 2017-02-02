@@ -4,11 +4,7 @@ from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
                           Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
-try:
-    from keras.layers import PhasedLSTM
-except:
-    PhasedLSTM = None
-    print("Skipping PhasedLSTM...")
+from custom_layers import PhasedLSTM
 from keras.models import Model, Sequential
 from keras.utils.np_utils import to_categorical
 from keras.preprocessing.sequence import pad_sequences
@@ -16,7 +12,6 @@ from keras.preprocessing.sequence import pad_sequences
 from autoencoder import encoder
 from asas_full import preprocess
 import keras_util as ku
-#import cesium.datasets
 from db_models import db, LightCurve
 
 
@@ -46,8 +41,9 @@ def main(args=None):
     if args.even:
         X = X[:, :, 1:]
 
-    train = np.sort(np.random.choice(np.arange(len(X)), int(len(X) * 0.8), replace=False))
-    valid = np.arange(len(X))[~np.in1d(np.arange(len(X)), train)]
+    shuffled_inds = np.random.permutation(np.arange(len(X)))
+    train = np.sort(shuffled_inds[:args.N_train])
+    valid = np.sort(shuffled_inds[args.N_train:])
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
@@ -71,9 +67,9 @@ def main(args=None):
     if args.pretrain:
         model.load_weights(os.path.join('keras_logs', args.pretrain, run, 'weights.h5'),
                            by_name=True)
-        encoding_index = np.where([l.name == 'encoding' for l in model.layers])[0].item()
-        for layer in model.layers[:encoding_index + 1]:
-            layer.trainable = False
+#        encoding_index = np.where([l.name == 'encoding' for l in model.layers])[0].item()
+#        for layer in model.layers[:encoding_index + 1]:
+#            layer.trainable = False  # TODO what should we be allowed to update?
 
     history = ku.train_and_log([X[train], scale_param_array[train]], Y[train],
                                run, model, metrics=['accuracy'],

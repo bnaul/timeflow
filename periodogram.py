@@ -30,7 +30,8 @@ def main(args=None):
         X = X[:, :, 1:2]
         F = dct(X)[:, :, 0]
     else:
-        freqs = np.linspace(0., 2 * np.pi, args.n_max + 1)[1:]
+#        freqs = np.linspace(0., 2 * np.pi, args.n_max + 1)[1:]
+        freqs = np.array([0.5])
         F = np.zeros((X.shape[0], freqs.shape[0]))
         for i in range(X.shape[0]):
             F[i] = lombscargle(X[i, :, 0], X[i, :, 1], freqs)
