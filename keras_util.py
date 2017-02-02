@@ -58,6 +58,7 @@ def parse_model_args():
     parser.add_argument("--m_max", type=float, default=15.)
     parser.add_argument("--lomb_score", type=float, default=None)
     parser.add_argument('--pretrain', type=str, default=None)
+    parser.add_argument('--finetune_rate', type=float, default=None)
     parser.set_defaults(even=False, batch_norm=False)
     args = parser.parse_args()
     if args.model_type in ['conv', 'atrous'] and args.filter_length is None:
@@ -97,8 +98,8 @@ def limited_memory_session(gpu_frac, gpu_id):
 
 def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                   metrics=[], sample_weight=None, no_train=False, patience=20,
-                  validation_data=None, **kwargs):
-    optimizer = Adam(lr=lr)
+                  finetune_rate=None, validation_data=None, **kwargs):
+    optimizer = Adam(lr=lr if not finetune_rate else finetune_rate)
     print(metrics)
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics,
                   sample_weight_mode='temporal' if sample_weight is not None else None)
@@ -106,14 +107,21 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
     log_dir = os.path.join(os.getcwd(), 'keras_logs', sim_type, run)
     print(log_dir)
     weights_path = os.path.join(log_dir, 'weights.h5')
+    loaded = False
     if os.path.exists(weights_path):
         print("Loading {}...".format(weights_path))
         history = []
         model.load_weights(weights_path)
-    else:
-        if no_train:
-            raise FileNotFoundError("No weights found.")
-        shutil.rmtree(log_dir, ignore_errors=True)
+        loaded = True
+    elif no_train or finetune_rate:
+        raise FileNotFoundError("No weights found.")
+
+    if finetune_rate:  # write logs to new directory
+        log_dir += "_ft{:1.0e}".format(finetune_rate).replace('e-', 'm')
+        print(log_dir)
+
+    if not loaded or finetune_rate:
+#        shutil.rmtree(log_dir, ignore_errors=True)
         os.makedirs(log_dir)
         param_log = {key: value for key, value in locals().items()}
         param_log.update(kwargs)
