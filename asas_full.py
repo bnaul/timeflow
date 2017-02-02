@@ -66,13 +66,13 @@ def main(args=None):
         except:
             from io import StringIO
         X_list = []
-	for fname in glob.glob('./data/asas/*/*'):
-	    with open(fname) as f:
-		dfs = [pd.read_csv(StringIO(chunk), comment='#', delim_whitespace=True) for chunk in f.read().split('#     ')[1:]]
-		if len(dfs) > 0:
-		    df = pd.concat(dfs)[['HJD', 'MAG_0', 'MER_0', 'GRADE']].sort(columns='HJD')
-		    df = df[df.GRADE <= 'B']
-		    df.drop_duplicates(subset=['HJD'], inplace=True)  #keep='first'
+        for fname in glob.glob('./data/asas/*/*'):
+            with open(fname) as f:
+                dfs = [pd.read_csv(StringIO(chunk), comment='#', delim_whitespace=True) for chunk in f.read().split('#     ')[1:]]
+                if len(dfs) > 0:
+                    df = pd.concat(dfs)[['HJD', 'MAG_0', 'MER_0', 'GRADE']].sort(columns='HJD')
+                    df = df[df.GRADE <= 'B']
+                    df.drop_duplicates(subset=['HJD'], inplace=True)  #keep='first'
                     X_i = df[['HJD', 'MAG_0', 'MER_0']].values
 
                     if args.lomb_score:
