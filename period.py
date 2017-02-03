@@ -23,7 +23,7 @@ def main(args=None):
                                                A_shape=5.,
                                                noise_sigma=args.sigma,
                                                w_min=0.1, w_max=1.,
-                                               kind=args.data_type, t_scale=1.0)
+                                               kind=args.data_type, t_scale=0.05)
 
     if args.even:
         X = X[:, :, 1:2]

@@ -44,6 +44,7 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
 
     if len(encode.get_shape()) > 2:
         encode = Flatten(name='flatten')(encode)
+    encode = Dense(size, activation='relu', name='pre_encoding')(encode)  # TODO experimental
     encode = Dense(output_size, activation='linear', name='encoding')(encode)
     return encode
 
@@ -109,7 +110,7 @@ def main(args=None):
                                                 args.n_max, t_max=2 * np.pi, even=args.even,
                                                 A_shape=5., noise_sigma=args.sigma,
                                                 w_min=0.1, w_max=1., kind=args.data_type,
-                                                t_scale=1.0)
+                                                t_scale=0.05)
 
     if args.even:
         X = X[:, :, 1:2]
