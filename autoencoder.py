@@ -37,14 +37,13 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
                 encode = BatchNormalization(mode=2, name='bn_encode_{}'.format(i))(encode)
             if pool:
                 encode = MaxPooling1D(pool, border_mode='same', name='pool_{}'.format(i))(encode)
-            if issubclass(layer, PhasedLSTM):
+            if issubclass(layer, Recurrent): # TODO experimental
                 aux_input = Lambda(lambda a: a[:, :, 0:1],
                                    output_shape=lambda s: (s[0], s[1], 1))(model_input)
                 encode = merge([aux_input, encode], mode='concat')
 
     if len(encode.get_shape()) > 2:
         encode = Flatten(name='flatten')(encode)
-    encode = Dense(size, activation='relu', name='pre_encoding')(encode)  # TODO experimental
     encode = Dense(output_size, activation='linear', name='encoding')(encode)
     return encode
 
@@ -88,8 +87,9 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
 
         decode = layer(size, name='decode_{}'.format(i), **kwargs)(decode)
 
-        if issubclass(layer, PhasedLSTM):  # TODO try for all recurrent types?
-            decode = merge([aux_input, decode], mode='concat')
+        if i < num_layers - 1:  # skip for last layer
+            if aux_input is not None and issubclass(layer, Recurrent):  # TODO experimental
+                decode = merge([aux_input, decode], mode='concat')
 
     if issubclass(layer, Recurrent):
         decode = TimeDistributed(Dense(1, activation='linear'), name='time_dist')(decode)
