@@ -2,7 +2,7 @@ import numpy as np
 from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector, Masking,
-                          Recurrent, AtrousConv1D, Conv1D, Lambda,
+                          Recurrent, AtrousConv1D, Conv1D, Lambda, Bidirectional,
                           MaxPooling1D, UpSampling1D, SimpleRNN, BatchNormalization)
 from custom_layers import PhasedLSTM
 from keras.models import Model, Sequential
@@ -13,7 +13,8 @@ import keras_util as ku
 
 # input: (t, m, e), (t, m), or (m)
 def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=False,
-            output_size=None, filter_length=None, pool=None, **parsed_args):
+            output_size=None, filter_length=None, pool=None, bidirectional=False,
+            **parsed_args):
     if output_size is None:
         output_size = size
 
@@ -29,7 +30,10 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
         if issubclass(layer, AtrousConv1D):
             kwargs['atrous_rate'] = 2 ** (i % 9)
             
-        encode = layer(size, name='encode_{}'.format(i), **kwargs)(encode)
+        if not bidirectional:  # TODO apply this more elegantly?
+            encode = layer(size, name='encode_{}'.format(i), **kwargs)(encode)
+        else:
+            encode = Bidirectional(layer(size, name='encode_{}'.format(i), **kwargs))(encode)
         if i < num_layers - 1:  # skip these for last layer
             if drop_frac > 0.0:
                 encode = Dropout(drop_frac, name='drop_encode_{}'.format(i))(encode)
@@ -51,7 +55,8 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
 # aux input: (t) or (t, e) or None
 # output: just m (output_len==1)
 def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=None,
-            batch_norm=False, filter_length=None, pool=None, **parsed_args):
+            batch_norm=False, filter_length=None, pool=None, bidirectional=False,
+            **parsed_args):
     if issubclass(layer, Recurrent):
         decode = RepeatVector(n_step, name='repeat')(encode)
     else:
@@ -85,7 +90,10 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
         if issubclass(layer, AtrousConv1D):
             kwargs['atrous_rate'] = 2 ** (i % 9)
 
-        decode = layer(size, name='decode_{}'.format(i), **kwargs)(decode)
+        if not bidirectional:
+            decode = layer(size, name='decode_{}'.format(i), **kwargs)(decode)
+        else:
+            decode = Bidirectional(layer(size, name='decode_{}'.format(i), **kwargs))(decode)
 
         if i < num_layers - 1:  # skip for last layer
             if aux_input is not None and issubclass(layer, Recurrent):  # TODO experimental

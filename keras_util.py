@@ -59,7 +59,8 @@ def parse_model_args():
     parser.add_argument("--lomb_score", type=float, default=None)
     parser.add_argument('--pretrain', type=str, default=None)
     parser.add_argument('--finetune_rate', type=float, default=None)
-    parser.set_defaults(even=False, batch_norm=False)
+    parser.add_argument('--bidirectional', dest='bidirectional', action='store_true')
+    parser.set_defaults(even=False, batch_norm=False, bidirectional=False)
     args = parser.parse_args()
     if args.model_type in ['conv', 'atrous'] and args.filter_length is None:
         parser.error("--model_type {} requires --filter_length".format(args.model_type))
@@ -67,7 +68,8 @@ def parse_model_args():
 
 
 def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=None,
-               embedding=None, batch_norm=False, pool=None, decode_type=None, **kwargs):
+               embedding=None, batch_norm=False, pool=None, decode_type=None,
+               bidirectional=False, **kwargs):
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(model_type, size,
                                                 num_layers, lr,
                                                 int(100 * drop_frac)).replace('e-', 'm')
@@ -81,6 +83,8 @@ def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=No
         run += '_pool{}'.format(pool)
     if decode_type:
         run += '_decode{}'.format(decode_type)
+    if bidirectional:
+        run += '_bidir'
 
     return run
 
