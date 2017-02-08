@@ -6,7 +6,7 @@ import shutil
 import numpy as np
 import tensorflow as tf
 from keras.optimizers import Adam
-from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping, ModelCheckpoint
+from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping, ModelCheckpoint, CSVLogger
 
 
 def times_to_lags(T):
@@ -137,6 +137,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size, validation_split=0.2,
                             callbacks=[ProgbarLogger(),
                                        TensorBoard(log_dir=log_dir, write_graph=False),
+                                       CSVLogger(os.path.join(log_dir, 'training.csv')),
                                        EarlyStopping(patience=patience),
                                        ModelCheckpoint(weights_path, save_weights_only=True)],
                             sample_weight=sample_weight,
