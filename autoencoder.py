@@ -1,4 +1,5 @@
 import numpy as np
+np.random.seed(0)
 from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector, Masking,
@@ -112,7 +113,6 @@ def main(args=None):
     if not args:
         args = ku.parse_model_args()
 
-    np.random.seed(0)
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
     X, Y, X_raw, labels, = sample_data.periodic(args.N_train + args.N_test, args.n_min,
                                                 args.n_max, even=args.even,

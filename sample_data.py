@@ -35,7 +35,7 @@ def _random_times(N, even=True, t_max=4 * np.pi, n_min=None, n_max=None, t_shape
 
 
 def _periodic_params(N, A_min, A_max, w_min, w_max):
-    w = np.random.uniform(w_min, w_max, size=N)
+    w = 1. / np.random.uniform(1. / w_max, 1. / w_min, size=N)
     A = np.random.uniform(A_min, A_max, size=N)
     phi = 2 * np.pi * np.random.random(size=N)
     b = np.random.normal(scale=1, size=N)
@@ -59,7 +59,7 @@ def _triangular(w, A, phi, b):
     return lambda t: 4 * A * np.abs(w * t - np.floor(1 / 2 + w * t)) - A + b
 
 
-def periodic(N, n_min, n_max, t_max=4 * np.pi, even=True, A_min=0.5, A_max=5.0,
+def periodic(N, n_min, n_max, t_max=4 * np.pi, even=True, A_min=1.0, A_max=5.0,
              noise_sigma=0., w_min=0.1, w_max=1., t_shape=2, t_scale=0.05,
              kind='sinusoid'):
     """Returns periodic data (values, (freq, amplitude, phase, offset))"""
