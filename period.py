@@ -44,9 +44,9 @@ def main(args=None):
     K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
 
     model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
-    encode = encoder(model_input, layer=model_type_dict[args.model_type], **vars(args))
-    out = Dense(Y.shape[-1])(encode)
-    model = Model(model_input, out)
+    encode = encoder(model_input, layer=model_type_dict[args.model_type],
+                     output_size=Y.shape[-1], **vars(args))
+    model = Model(model_input, encode)
 
     run = ku.get_run_id(**vars(args))
  
