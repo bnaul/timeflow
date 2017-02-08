@@ -18,7 +18,7 @@ def phase_to_sin_cos(Y):
     return np.c_[p, A_cos, A_sin, b]
 
 
-def _random_times(N, even=True, t_max=2 * np.pi, n_min=None, n_max=None, t_shape=2, t_scale=0.05):
+def _random_times(N, even=True, t_max=4 * np.pi, n_min=None, n_max=None, t_shape=2, t_scale=0.05):
     if n_min is None and n_max is None:
         raise ValueError("Either n_min or n_max is required.")
     elif n_min is None:
@@ -34,9 +34,9 @@ def _random_times(N, even=True, t_max=2 * np.pi, n_min=None, n_max=None, t_shape
         return [np.r_[0, np.cumsum(lags_i)] for lags_i in lags]
 
 
-def _periodic_params(N, A_shape, w_min, w_max):
+def _periodic_params(N, A_min, A_max, w_min, w_max):
     w = np.random.uniform(w_min, w_max, size=N)
-    A = np.random.gamma(shape=A_shape, scale=1. / A_shape, size=N)
+    A = np.random.uniform(A_min, A_max, size=N)
     phi = 2 * np.pi * np.random.random(size=N)
     b = np.random.normal(scale=1, size=N)
 
@@ -59,12 +59,12 @@ def _triangular(w, A, phi, b):
     return lambda t: 4 * A * np.abs(w * t - np.floor(1 / 2 + w * t)) - A + b
 
 
-def periodic(N, n_min, n_max, t_max=2 * np.pi, even=True, A_shape=1.,
-             noise_sigma=0., w_min=0.01, w_max=1., t_shape=2, t_scale=0.05,
+def periodic(N, n_min, n_max, t_max=4 * np.pi, even=True, A_min=0.5, A_max=5.0,
+             noise_sigma=0., w_min=0.1, w_max=1., t_shape=2, t_scale=0.05,
              kind='sinusoid'):
     """Returns periodic data (values, (freq, amplitude, phase, offset))"""
     t = _random_times(N, even, t_max, n_min, n_max, t_shape, t_scale)
-    w, A, phi, b = _periodic_params(N, A_shape, w_min, w_max)
+    w, A, phi, b = _periodic_params(N, A_min, A_max, w_min, w_max)
 
     func_dict = {'sinusoid': _sinusoid, 'square': _square,
                  'triangular': _triangular, 'sawtooth': _sawtooth}

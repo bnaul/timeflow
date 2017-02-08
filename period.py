@@ -19,11 +19,11 @@ def main(args=None):
     N = args.N_train + args.N_test
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
     X, Y, X_raw, labels = sample_data.periodic(N, args.n_min, args.n_max,
-                                               t_max=2*np.pi, even=args.even,
-                                               A_shape=5.,
+                                               even=args.even,
                                                noise_sigma=args.sigma,
-                                               w_min=0.1, w_max=1.,
-                                               kind=args.data_type, t_scale=0.05)
+                                               kind=args.data_type,
+#                                               t_scale=0.05
+                                              )
 
     if args.even:
         X = X[:, :, 1:2]

@@ -41,7 +41,7 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
                 encode = BatchNormalization(mode=2, name='bn_encode_{}'.format(i))(encode)
             if pool:
                 encode = MaxPooling1D(pool, border_mode='same', name='pool_{}'.format(i))(encode)
-            if issubclass(layer, Recurrent): # TODO experimental
+            if issubclass(layer, PhasedLSTM): # TODO experimental
                 aux_input = Lambda(lambda a: a[:, :, 0:1],
                                    output_shape=lambda s: (s[0], s[1], 1))(model_input)
                 encode = merge([aux_input, encode], mode='concat')
@@ -95,9 +95,9 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
         else:
             decode = Bidirectional(layer(size, name='decode_{}'.format(i), **kwargs))(decode)
 
-        if i < num_layers - 1:  # skip for last layer
-            if aux_input is not None and issubclass(layer, Recurrent):  # TODO experimental
-                decode = merge([aux_input, decode], mode='concat')
+#        if i < num_layers - 1:  # skip for last layer
+#            if aux_input is not None and issubclass(layer, Recurrent):  # TODO experimental
+#                decode = merge([aux_input, decode], mode='concat')
 
     if issubclass(layer, Recurrent):
         decode = TimeDistributed(Dense(1, activation='linear'), name='time_dist')(decode)
@@ -115,10 +115,11 @@ def main(args=None):
     np.random.seed(0)
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
     X, Y, X_raw, labels, = sample_data.periodic(args.N_train + args.N_test, args.n_min,
-                                                args.n_max, t_max=2 * np.pi, even=args.even,
-                                                A_shape=5., noise_sigma=args.sigma,
-                                                w_min=0.1, w_max=1., kind=args.data_type,
-                                                t_scale=0.05)
+                                                args.n_max, even=args.even,
+                                                noise_sigma=args.sigma,
+                                                kind=args.data_type,
+#                                                t_scale=0.05
+                                               )
 
     if args.even:
         X = X[:, :, 1:2]
