@@ -1,6 +1,5 @@
 import numpy as np
 np.random.seed(0)
-from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector, Masking,
                           Recurrent, AtrousConv1D, Conv1D, Lambda, Bidirectional,
@@ -73,7 +72,7 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
     for i in range(num_layers):
         if i > 0:  # skip these for first layer (for symmetry)
             if batch_norm:
-                decode = BatchNormalization(mode=2, name='bn_decode_{}'.format(i))(decode)
+                decode = BatchNormalization(name='bn_decode_{}'.format(i))(decode)
             if drop_frac > 0.0:
                 decode = Dropout(drop_frac, name='drop_decode_{}'.format(i))(decode)
             if pool:
@@ -130,7 +129,6 @@ def main(args=None):
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
-    K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
 
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     if args.even:

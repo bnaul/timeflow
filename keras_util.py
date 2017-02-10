@@ -5,6 +5,7 @@ import os
 import shutil
 import numpy as np
 import tensorflow as tf
+import keras.backend as K
 from keras.optimizers import Adam
 from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping, ModelCheckpoint, CSVLogger
 
@@ -25,20 +26,20 @@ def lags_to_times(dT):
     return np.c_[np.zeros(dT.shape[0]), np.cumsum(dT[:,:-1], axis=1)]
 
 
-def parse_model_args():
+def parse_model_args(extra_arg_dict={}):
     parser = argparse.ArgumentParser()
-    parser.add_argument("size", nargs="?", type=int)
-    parser.add_argument("num_layers", nargs="?", type=int)
-    parser.add_argument("drop_frac", nargs="?", type=float)
+    parser.add_argument("--size", type=int)
+    parser.add_argument("--num_layers", type=int)
+    parser.add_argument("--drop_frac", type=float)
     parser.add_argument("--batch_size", type=int, default=500)
     parser.add_argument("--nb_epoch", type=int, default=250)
-    parser.add_argument("--lr", type=float, default=0.002)
+    parser.add_argument("--lr", type=float)
     parser.add_argument("--loss", type=str, default='mse')
     parser.add_argument("--loss_weights", type=float, nargs='*')
-    parser.add_argument("--model_type", type=str, default='lstm')
+    parser.add_argument("--model_type", type=str)
     parser.add_argument("--decode_type", type=str, default=None)
+    parser.add_argument("--gpu_id", type=int)
     parser.add_argument("--gpu_frac", type=float, default=0.31)
-    parser.add_argument("--gpu_id", type=int, default=0)
     parser.add_argument("--sigma", type=float, default=2e-9)
     parser.add_argument("--sim_type", type=str)
     parser.add_argument("--data_type", type=str, default='sinusoid')
@@ -62,8 +63,15 @@ def parse_model_args():
     parser.add_argument('--bidirectional', dest='bidirectional', action='store_true')
     parser.set_defaults(even=False, batch_norm=False, bidirectional=False)
     args = parser.parse_args()
+
+    args = argparse.Namespace(**{**args.__dict__, **extra_arg_dict})  # merge additional arguments w/ defaults
+
     if args.model_type in ['conv', 'atrous'] and args.filter_length is None:
         parser.error("--model_type {} requires --filter_length".format(args.model_type))
+    for key in ['size', 'num_layers', 'drop_frac', 'lr', 'model_type', 'sim_type', 'n_min', 'n_max']:
+        if getattr(args, key) is None:
+            raise "Missing argument {}".format(key)
+
     return args
 
 
@@ -92,12 +100,12 @@ def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=No
 def limited_memory_session(gpu_frac, gpu_id):
     if gpu_frac <= 0.0:
         os.environ['CUDA_VISIBLE_DEVICES'] = ''
-        return tf.Session()
+        K.set_session(tf.Session())
     else:
         os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id) if gpu_id is not None else ''
         gpu_opts = tf.ConfigProto(gpu_options=tf.GPUOptions(
             per_process_gpu_memory_fraction=gpu_frac))
-        return tf.Session(config=gpu_opts)
+        K.set_session(tf.Session(config=gpu_opts))
 
 
 def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
@@ -125,7 +133,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         print(log_dir)
 
     if not loaded or finetune_rate:
-#        shutil.rmtree(log_dir, ignore_errors=True)
+        shutil.rmtree(log_dir, ignore_errors=True)
         os.makedirs(log_dir)
         param_log = {key: value for key, value in locals().items()}
         param_log.update(kwargs)
@@ -137,7 +145,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size, validation_split=0.2,
                             callbacks=[ProgbarLogger(),
                                        TensorBoard(log_dir=log_dir, write_graph=False),
-                                       CSVLogger(os.path.join(log_dir, 'training.csv')),
+                                       CSVLogger(os.path.join(log_dir, 'training.csv'), append=True),
                                        EarlyStopping(patience=patience),
                                        ModelCheckpoint(weights_path, save_weights_only=True)],
                             sample_weight=sample_weight,

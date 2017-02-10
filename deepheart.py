@@ -11,7 +11,6 @@ y = (Y[:, 0] == 1).astype('int')
 n_min = min(len(x) for x in X_full)
 n_max = max(len(x) for x in X_full)
 
-from keras import backend as K
 from keras.utils.np_utils import to_categorical
 
 import keras_util as ku
@@ -29,7 +28,6 @@ drop_frac = 0.25
 lr = 5e-4
 sim_type = 'deepheart_gru{}'.format(n_min)
 
-K.set_session(ku.limited_memory_session(gpu_frac, gpu_id))
 X_trunc = pad_sequences(X_full, maxlen=n_min, dtype='float32', value=-1., padding='post', truncating='post')
 X = np.expand_dims(X_trunc, axis=2)
 model = gru(output_len=Y.shape[1], n_step=n_min, size=size, num_layers=num_layers, drop_frac=drop_frac)

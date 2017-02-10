@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU, SimpleRNN,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
                           Conv1D, AtrousConv1D)
@@ -35,7 +34,6 @@ def main(args=None):
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D}
-    K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
 
     encode = Input(shape=(Y.shape[1],), name='main_input')
     if args.even:

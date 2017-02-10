@@ -1,6 +1,5 @@
 # TODO update
 import numpy as np
-from keras import backend as K
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
                           Conv1D, MaxPooling1D)
@@ -64,7 +63,6 @@ if __name__ == '__main__':
     import argparse
     import os
     import numpy as np
-    from keras import backend as K
     from keras.utils.np_utils import to_categorical
 
     import sample_data
@@ -108,7 +106,6 @@ if __name__ == '__main__':
     model_dict = {'lstm': even_lstm_classifier, 'gru': even_gru_classifier,
                   'conv': even_conv_classifier}
 
-    K.set_session(ku.limited_memory_session(args.gpu_frac, args.gpu_id))
     model = model_dict[args.model_type](output_len=Y.shape[-1], n_step=n_max,
                                         **vars(args))
 
