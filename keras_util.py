@@ -7,7 +7,16 @@ import numpy as np
 import tensorflow as tf
 import keras.backend as K
 from keras.optimizers import Adam
-from keras.callbacks import ProgbarLogger, TensorBoard, EarlyStopping, ModelCheckpoint, CSVLogger
+from keras.callbacks import (Callback, ProgbarLogger, TensorBoard,
+                             EarlyStopping, ModelCheckpoint, CSVLogger)
+
+
+class LogDirLogger(Callback):
+    def __init__(self, log_dir):
+        self.log_dir = log_dir 
+
+    def on_epoch_begin(self, epoch, logs=None):
+        print(self.log_dir)
 
 
 def times_to_lags(T):
@@ -117,7 +126,6 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                   sample_weight_mode='temporal' if sample_weight is not None else None)
 
     log_dir = os.path.join(os.getcwd(), 'keras_logs', sim_type, run)
-    print(log_dir)
     weights_path = os.path.join(log_dir, 'weights.h5')
     loaded = False
     if os.path.exists(weights_path):
@@ -130,7 +138,6 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
 
     if finetune_rate:  # write logs to new directory
         log_dir += "_ft{:1.0e}".format(finetune_rate).replace('e-', 'm')
-        print(log_dir)
 
     if not loaded or finetune_rate:
         shutil.rmtree(log_dir, ignore_errors=True)
@@ -147,7 +154,8 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                                        TensorBoard(log_dir=log_dir, write_graph=False),
                                        CSVLogger(os.path.join(log_dir, 'training.csv'), append=True),
                                        EarlyStopping(patience=patience),
-                                       ModelCheckpoint(weights_path, save_weights_only=True)],
+                                       ModelCheckpoint(weights_path, save_weights_only=True),
+                                       LogDirLogger(log_dir)],
                             sample_weight=sample_weight,
                             validation_data=validation_data)
     return history
