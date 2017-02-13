@@ -1,5 +1,6 @@
 import numpy as np
 np.random.seed(0)
+from sklearn.preprocessing import StandardScaler
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
                           Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
@@ -18,11 +19,11 @@ def main(args=None):
     N = args.N_train + args.N_test
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
     X, Y, X_raw, labels = sample_data.periodic(N, args.n_min, args.n_max,
-                                               even=args.even,
-                                               noise_sigma=args.sigma,
-                                               kind=args.data_type,
-#                                               t_scale=0.05
-                                              )
+                                                   even=args.even,
+                                                   noise_sigma=args.sigma,
+                                                   kind=args.data_type,
+                                                   # t_scale=0.05
+                                                  )
 
     if args.even:
         X = X[:, :, 1:2]
@@ -34,8 +35,9 @@ def main(args=None):
         X_raw[np.isnan(X_raw)] = -1.
 
     Y = sample_data.phase_to_sin_cos(Y)
-
-    if args.loss_weights:
+    scaler = StandardScaler(copy=False, with_mean=True, with_std=True)
+    scaler.fit_transform(Y)
+    if args.loss_weights:  # in practice, only used to zero out some columns
         Y *= args.loss_weights
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
@@ -47,10 +49,10 @@ def main(args=None):
     model = Model(model_input, encode)
 
     run = ku.get_run_id(**vars(args))
- 
+
     history = ku.train_and_log(X[train], Y[train], run, model, **vars(args))
-    return X, Y, model, args
+    return X, Y, X_raw, scaler, model, args
 
 
 if __name__ == '__main__':
-    X, Y, model, args = main()
+    X, Y, X_raw, scaler, model, args = main()

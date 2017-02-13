@@ -59,7 +59,7 @@ def _triangular(w, A, phi, b):
     return lambda t: 4 * A * np.abs(w * t - np.floor(1 / 2 + w * t)) - A + b
 
 
-def periodic(N, n_min, n_max, t_max=4 * np.pi, even=True, A_min=1.0, A_max=5.0,
+def periodic(N, n_min, n_max, t_max=4 * np.pi, even=True, A_min=0.5, A_max=2.0,
              noise_sigma=0., w_min=0.1, w_max=1., t_shape=2, t_scale=0.05,
              kind='sinusoid'):
     """Returns periodic data (values, (freq, amplitude, phase, offset))"""

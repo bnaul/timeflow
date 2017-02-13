@@ -79,7 +79,7 @@ def parse_model_args(extra_arg_dict={}):
         parser.error("--model_type {} requires --filter_length".format(args.model_type))
     for key in ['size', 'num_layers', 'drop_frac', 'lr', 'model_type', 'sim_type', 'n_min', 'n_max']:
         if getattr(args, key) is None:
-            raise "Missing argument {}".format(key)
+            parser.error("Missing argument {}".format(key))
 
     return args
 
