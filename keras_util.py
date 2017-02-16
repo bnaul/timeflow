@@ -47,6 +47,7 @@ def parse_model_args(extra_arg_dict={}):
     parser.add_argument("--loss_weights", type=float, nargs='*')
     parser.add_argument("--model_type", type=str)
     parser.add_argument("--decode_type", type=str, default=None)
+    parser.add_argument("--decode_layers", type=int, default=None)
     parser.add_argument("--gpu_id", type=int)
     parser.add_argument("--gpu_frac", type=float, default=0.31)
     parser.add_argument("--sigma", type=float, default=2e-9)
@@ -86,7 +87,7 @@ def parse_model_args(extra_arg_dict={}):
 
 def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=None,
                embedding=None, batch_norm=False, pool=None, decode_type=None,
-               bidirectional=False, **kwargs):
+               decode_layers=None, bidirectional=False, **kwargs):
     run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(model_type, size,
                                                 num_layers, lr,
                                                 int(100 * drop_frac)).replace('e-', 'm')
@@ -100,6 +101,8 @@ def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=No
         run += '_pool{}'.format(pool)
     if decode_type:
         run += '_decode{}'.format(decode_type)
+        if decode_layers:
+            run += '_x{}'.format(decode_layers)
     if bidirectional:
         run += '_bidir'
 

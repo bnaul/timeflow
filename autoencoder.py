@@ -142,10 +142,12 @@ def main(args=None):
 
     encode = encoder(main_input, layer=model_type_dict[args.model_type],
                      output_size=args.embedding, **vars(args))
-    decode = decoder(encode, layer=model_type_dict[args.decode_type if args.decode_type
-                                                   else args.model_type],
+    decode = decoder(encode, num_layers=args.decode_layers if args.decode_layers
+                                                           else args.num_layers,
+                     layer=model_type_dict[args.decode_type if args.decode_type
+                                           else args.model_type],
                      n_step=X.shape[1], aux_input=aux_input,
-                     **vars(args))
+                     **{k: v for k, v in vars(args).items() if k != 'num_layers'})
     model = Model(model_input, decode)
 
     run = ku.get_run_id(**vars(args))
