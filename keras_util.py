@@ -74,7 +74,9 @@ def parse_model_args(extra_arg_dict={}):
     parser.set_defaults(even=False, batch_norm=False, bidirectional=False)
     args = parser.parse_args()
 
-    args = argparse.Namespace(**{**args.__dict__, **extra_arg_dict})  # merge additional arguments w/ defaults
+#    args = argparse.Namespace(**{**args.__dict__, **extra_arg_dict})  # merge additional arguments w/ defaults
+    for k in extra_arg_dict:  # Python 2-compatible version
+        args.__dict__[k] = extra_arg_dict[k]
 
     if args.model_type in ['conv', 'atrous'] and args.filter_length is None:
         parser.error("--model_type {} requires --filter_length".format(args.model_type))
