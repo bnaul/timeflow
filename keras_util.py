@@ -87,8 +87,8 @@ def parse_model_args(extra_arg_dict={}):
     parser.add_argument("--model_type", type=str)
     parser.add_argument("--decode_type", type=str, default=None)
     parser.add_argument("--decode_layers", type=int, default=None)
-    parser.add_argument("--gpu_id", type=int)
-    parser.add_argument("--gpu_frac", type=float, default=0.31)
+    parser.add_argument("--gpu_id", type=int, default=None)
+    parser.add_argument("--gpu_frac", type=float, default=None)
     parser.add_argument("--sigma", type=float, default=2e-9)
     parser.add_argument("--sim_type", type=str)
     parser.add_argument("--data_type", type=str, default='sinusoid')
@@ -163,9 +163,12 @@ def limited_memory_session(gpu_frac, gpu_id):
 
 def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                   metrics=[], sample_weight=None, no_train=False, patience=20,
-                  finetune_rate=None, validation_data=None, **kwargs):
+                  finetune_rate=None, validation_data=None, gpu_id=None, gpu_frac=None,
+                  **kwargs):
     optimizer = Adam(lr=lr if not finetune_rate else finetune_rate)
     print(metrics)
+    if gpu_id or gpu_frac:
+        limited_memory_session(gpu_frac, gpu_id)
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics,
                   sample_weight_mode='temporal' if sample_weight is not None else None)
 
