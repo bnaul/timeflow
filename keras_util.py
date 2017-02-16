@@ -1,11 +1,14 @@
 import argparse
 from functools import wraps
+import csv
+import datetime
 import json
 import os
 import shutil
 import numpy as np
 import tensorflow as tf
 import keras.backend as K
+from collections import Iterable, OrderedDict
 from keras.optimizers import Adam
 from keras.callbacks import Callback, TensorBoard, EarlyStopping, ModelCheckpoint, CSVLogger
 # TODO is there a better way to do this?
@@ -24,6 +27,35 @@ class LogDirLogger(Callback):
 
     def on_epoch_begin(self, epoch, logs=None):
         print(self.log_dir)
+
+
+class TimedCSVLogger(CSVLogger):
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+
+        def handle_value(k):
+            is_zero_dim_ndarray = isinstance(k, np.ndarray) and k.ndim == 0
+            if isinstance(k, Iterable) and not is_zero_dim_ndarray:
+                return '"[%s]"' % (', '.join(map(str, k)))
+            else:
+                return k
+
+        if not self.writer:
+            self.keys = sorted(logs.keys())
+
+            class CustomDialect(csv.excel):
+                delimiter = self.sep
+
+            self.writer = csv.DictWriter(self.csv_file,
+                                         fieldnames=['epoch', 'time'] + self.keys,
+                                         dialect=CustomDialect)
+            if self.append_header:
+                self.writer.writeheader()
+
+        row_dict = OrderedDict({'epoch': epoch, 'time': str(datetime.datetime.now())})
+        row_dict.update((key, handle_value(logs[key])) for key in self.keys)
+        self.writer.writerow(row_dict)
+        self.csv_file.flush()
 
 
 def times_to_lags(T):
@@ -164,7 +196,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size, validation_split=0.2,
                             callbacks=[ProgbarLogger(),
                                        TensorBoard(log_dir=log_dir, write_graph=False),
-                                       CSVLogger(os.path.join(log_dir, 'training.csv'), append=True),
+                                       TimedCSVLogger(os.path.join(log_dir, 'training.csv'), append=True),
                                        EarlyStopping(patience=patience),
                                        ModelCheckpoint(weights_path, save_weights_only=True),
                                        LogDirLogger(log_dir)], verbose=False,
