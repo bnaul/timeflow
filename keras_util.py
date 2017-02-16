@@ -7,8 +7,15 @@ import numpy as np
 import tensorflow as tf
 import keras.backend as K
 from keras.optimizers import Adam
-from keras.callbacks import (Callback, ProgbarLogger, TensorBoard,
-                             EarlyStopping, ModelCheckpoint, CSVLogger)
+from keras.callbacks import Callback, TensorBoard, EarlyStopping, ModelCheckpoint, CSVLogger
+# TODO is there a better way to do this?
+try:
+    if 'get_ipython' in vars() and get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+        from keras_tqdm import TQDMNotebookCallback as ProgbarLogger
+    else:
+        from keras_tqdm import TQDMCallback as ProgbarLogger
+except:
+    from keras.callbacks import ProgbarLogger
 
 
 class LogDirLogger(Callback):
@@ -160,7 +167,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                                        CSVLogger(os.path.join(log_dir, 'training.csv'), append=True),
                                        EarlyStopping(patience=patience),
                                        ModelCheckpoint(weights_path, save_weights_only=True),
-                                       LogDirLogger(log_dir)],
+                                       LogDirLogger(log_dir)], verbose=False,
                             sample_weight=sample_weight,
                             validation_data=validation_data)
     return history
