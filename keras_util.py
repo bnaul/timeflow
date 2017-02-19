@@ -11,12 +11,18 @@ import keras.backend as K
 from collections import Iterable, OrderedDict
 from keras.optimizers import Adam
 from keras.callbacks import Callback, TensorBoard, EarlyStopping, ModelCheckpoint, CSVLogger
+
 # TODO is there a better way to do this?
 try:
     if 'get_ipython' in vars() and get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
         from keras_tqdm import TQDMNotebookCallback as ProgbarLogger
     else:
-        from keras_tqdm import TQDMCallback as ProgbarLogger
+        from keras_tqdm import TQDMCallback
+        import sys
+        class ProgbarLogger(TQDMCallback):  # redirect TQDMCallback to stdout
+            def __init__(self):
+                TQDMCallback.__init__(self)
+                self.output_file = sys.stdout
 except:
     from keras.callbacks import ProgbarLogger
 
