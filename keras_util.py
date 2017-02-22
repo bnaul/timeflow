@@ -187,7 +187,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         model.load_weights(weights_path)
         loaded = True
     elif no_train or finetune_rate:
-        raise FileNotFoundError("No weights found.")
+        raise FileNotFoundError("No weights found in {}.".format(log_dir))
 
     if finetune_rate:  # write logs to new directory
         log_dir += "_ft{:1.0e}".format(finetune_rate).replace('e-', 'm')
