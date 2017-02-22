@@ -29,11 +29,13 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
             kwargs['border_mode'] = 'same'
         if issubclass(layer, AtrousConv1D):
             kwargs['atrous_rate'] = 2 ** (i % 9)
-            
-        if not bidirectional:  # TODO apply this more elegantly?
+
+        # TODO apply this more elegantly? something like a decorator?
+        if not bidirectional or not issubclass(layer, Recurrent):
             encode = layer(size, name='encode_{}'.format(i), **kwargs)(encode)
         else:
             encode = Bidirectional(layer(size, name='encode_{}'.format(i), **kwargs))(encode)
+
         if drop_frac > 0.0:
             encode = Dropout(drop_frac, name='drop_encode_{}'.format(i))(encode)
         if batch_norm:
@@ -89,7 +91,7 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
         if issubclass(layer, AtrousConv1D):
             kwargs['atrous_rate'] = 2 ** (i % 9)
 
-        if not bidirectional:
+        if not bidirectional or not issubclass(layer, Recurrent):
             decode = layer(size, name='decode_{}'.format(i), **kwargs)(decode)
         else:
             decode = Bidirectional(layer(size, name='decode_{}'.format(i), **kwargs))(decode)

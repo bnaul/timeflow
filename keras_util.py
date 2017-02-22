@@ -32,7 +32,7 @@ class LogDirLogger(Callback):
         self.log_dir = log_dir 
 
     def on_epoch_begin(self, epoch, logs=None):
-        print(self.log_dir)
+        print('\n' + self.log_dir + '\n')
 
 
 class TimedCSVLogger(CSVLogger):
@@ -192,7 +192,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
     if finetune_rate:  # write logs to new directory
         log_dir += "_ft{:1.0e}".format(finetune_rate).replace('e-', 'm')
 
-    if not loaded or finetune_rate:
+    if (not loaded or finetune_rate) and not no_train:
         shutil.rmtree(log_dir, ignore_errors=True)
         os.makedirs(log_dir)
         param_log = {key: value for key, value in locals().items()}
