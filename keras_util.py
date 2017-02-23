@@ -156,12 +156,12 @@ def get_run_id(model_type, size, num_layers, lr, drop_frac=0.0, filter_length=No
     return run
 
 
-def limited_memory_session(gpu_frac, gpu_id):
+def limited_memory_session(gpu_frac):
     if gpu_frac <= 0.0:
-        os.environ['CUDA_VISIBLE_DEVICES'] = ''
+#        os.environ['CUDA_VISIBLE_DEVICES'] = ''
         K.set_session(tf.Session())
     else:
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id) if gpu_id is not None else ''
+#        os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id) if gpu_id is not None else ''
         gpu_opts = tf.ConfigProto(gpu_options=tf.GPUOptions(
             per_process_gpu_memory_fraction=gpu_frac))
         K.set_session(tf.Session(config=gpu_opts))
@@ -174,7 +174,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
     optimizer = Adam(lr=lr if not finetune_rate else finetune_rate)
     print(metrics)
     if gpu_id or gpu_frac:
-        limited_memory_session(gpu_frac, gpu_id)
+        limited_memory_session(gpu_frac)
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics,
                   sample_weight_mode='temporal' if sample_weight is not None else None)
 
