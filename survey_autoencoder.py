@@ -49,7 +49,9 @@ def main(args=None):
 
     np.random.seed(0)
 
-    full = joblib.load('data/asas/light_curves.pkl')
+    if not args.survey_files:
+        raise ValueError("No survey files given")
+    full = [lc for f in args.survey_files for lc in joblib.load(f)]
     if args.lomb_score:
         full = [lc for lc in full if lc.best_score >= args.lomb_score]
     split = [el for lc in full for el in lc.split(args.n_min, args.n_max)]

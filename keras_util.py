@@ -116,6 +116,7 @@ def parse_model_args(extra_arg_dict={}):
     parser.add_argument('--pretrain', type=str, default=None)
     parser.add_argument('--finetune_rate', type=float, default=None)
     parser.add_argument('--bidirectional', dest='bidirectional', action='store_true')
+    parser.add_argument("--survey_files", type=str, nargs='*')
     parser.set_defaults(even=False, batch_norm=False, bidirectional=False)
     args = parser.parse_args()
 
