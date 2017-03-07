@@ -111,7 +111,7 @@ def parse_model_args(extra_arg_dict={}):
     parser.add_argument('--batch_norm', dest='batch_norm', action='store_true')
     parser.add_argument('--pool', type=int, default=None)
     parser.add_argument("--first_N", type=int, default=None)
-    parser.add_argument("--m_max", type=float, default=15.)
+    parser.add_argument("--m_max", type=float, default=20.)
     parser.add_argument("--lomb_score", type=float, default=None)
     parser.add_argument('--pretrain', type=str, default=None)
     parser.add_argument('--finetune_rate', type=float, default=None)
