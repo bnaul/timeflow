@@ -80,7 +80,7 @@ def lags_to_times(dT):
     return np.c_[np.zeros(dT.shape[0]), np.cumsum(dT[:,:-1], axis=1)]
 
 
-def parse_model_args(extra_arg_dict={}):
+def parse_model_args(arg_dict=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--size", type=int)
     parser.add_argument("--num_layers", type=int)
@@ -118,11 +118,10 @@ def parse_model_args(extra_arg_dict={}):
     parser.add_argument('--bidirectional', dest='bidirectional', action='store_true')
     parser.add_argument("--survey_files", type=str, nargs='*')
     parser.set_defaults(even=False, batch_norm=False, bidirectional=False)
-    args = parser.parse_args()
+    args = parser.parse_args(None if arg_dict is None else [])  # don't read argv if arg_dict present
 
-#    args = argparse.Namespace(**{**args.__dict__, **extra_arg_dict})  # merge additional arguments w/ defaults
-    for k in extra_arg_dict:  # Python 2-compatible version
-        args.__dict__[k] = extra_arg_dict[k]
+    if arg_dict:  # merge additional arguments w/ defaults
+        args = argparse.Namespace(**{**args.__dict__, **arg_dict})
 
     if args.model_type in ['conv', 'atrous'] and args.filter_length is None:
         parser.error("--model_type {} requires --filter_length".format(args.model_type))
