@@ -1,6 +1,8 @@
 import argparse
-from functools import wraps
 import csv
+from functools import wraps
+from itertools import cycle, islice
+from math import ceil
 import datetime
 import json
 import os
@@ -10,21 +12,22 @@ import tensorflow as tf
 import keras.backend as K
 from collections import Iterable, OrderedDict
 from keras.optimizers import Adam
-from keras.callbacks import Callback, TensorBoard, EarlyStopping, ModelCheckpoint, CSVLogger
+from keras.callbacks import (Callback, TensorBoard, EarlyStopping,
+                             ModelCheckpoint, CSVLogger, ProgbarLogger)
 
 # TODO is there a better way to do this?
 try:
     if 'get_ipython' in vars() and get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
-        from keras_tqdm import TQDMNotebookCallback as ProgbarLogger
+        from keras_tqdm import TQDMNotebookCallback as ProgbarOrTQDM
     else:
-        from keras_tqdm import TQDMCallback
+        from keras_tqdm import TQDMCallback as ProgbarOrTQDM
         import sys
-        class ProgbarLogger(TQDMCallback):  # redirect TQDMCallback to stdout
+        class ProgbarOrTQDM(TQDMCallback):  # redirect TQDMCallback to stdout
             def __init__(self):
                 TQDMCallback.__init__(self)
                 self.output_file = sys.stdout
 except:
-    from keras.callbacks import ProgbarLogger
+    from keras.callbacks import ProgbarLogger as ProgbarOrTQDM
 
 
 class LogDirLogger(Callback):
@@ -80,6 +83,32 @@ def lags_to_times(dT):
     return np.c_[np.zeros(dT.shape[0]), np.cumsum(dT[:,:-1], axis=1)]
 
 
+def noisify_samples(inputs, outputs, errors, batch_size=500, sample_weight=None):
+    """
+    inputs: {'main_input': X, 'aux_input': X[:, :, [1]]}
+    outputs: X[:, :, [1]]
+    errors: X_raw[:, :, 2]
+    """
+    if sample_weight is None:
+        sample_weight = np.ones(errors.shape)
+    X = inputs['main_input']
+    X_aux = inputs['aux_input']
+    shuffle_inds = np.arange(len(X))
+    while True:
+        # New epoch
+        np.random.shuffle(shuffle_inds)
+        noise = errors * np.random.normal(size=errors.shape)
+        X_noisy = X.copy()
+        X_noisy[:, :, 1] += noise
+        # Re-scale to have mean 0 and std dev 1; TODO make this optional
+        X_noisy[:, :, 1] -= np.atleast_2d(np.nanmean(X_noisy[:, :, 1], axis=1)).T
+        X_noisy[:, :, 1] /= np.atleast_2d(np.std(X[:, :, 1], axis=1)).T
+
+        for i in range(ceil(len(X) / batch_size)):
+            inds = shuffle_inds[(i * batch_size):((i + 1) * batch_size)]
+            yield ([X_noisy[inds], X_aux[inds]], outputs[inds], sample_weight[inds])
+
+
 def parse_model_args(arg_dict=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--size", type=int)
@@ -117,7 +146,8 @@ def parse_model_args(arg_dict=None):
     parser.add_argument('--finetune_rate', type=float, default=None)
     parser.add_argument('--bidirectional', dest='bidirectional', action='store_true')
     parser.add_argument("--survey_files", type=str, nargs='*')
-    parser.set_defaults(even=False, batch_norm=False, bidirectional=False)
+    parser.add_argument('--noisify', dest='noisify', action='store_true')
+    parser.set_defaults(even=False, batch_norm=False, bidirectional=False, noisify=False)
     args = parser.parse_args(None if arg_dict is None else [])  # don't read argv if arg_dict present
 
     if arg_dict:  # merge additional arguments w/ defaults
@@ -170,7 +200,7 @@ def limited_memory_session(gpu_frac):
 def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                   metrics=[], sample_weight=None, no_train=False, patience=20,
                   finetune_rate=None, validation_data=None, gpu_id=None, gpu_frac=None,
-                  **kwargs):
+                  noisify=False, errors=None, **kwargs):
     optimizer = Adam(lr=lr if not finetune_rate else finetune_rate)
     print(metrics)
     if gpu_id or gpu_frac:
@@ -199,16 +229,33 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         param_log.update(kwargs)
         param_log = {k: v for k, v in param_log.items()
                      if k not in ['X', 'Y', 'model', 'optimizer', 'sample_weight',
-                                  'kwargs', 'validation_data']}
+                                  'kwargs', 'validation_data', 'errors']}
         json.dump(param_log, open(os.path.join(log_dir, 'param_log.json'), 'w'),
                   sort_keys=True, indent=2)
-        history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size, validation_split=0.2,
-                            callbacks=[ProgbarLogger(),
-                                       TensorBoard(log_dir=log_dir, write_graph=False),
-                                       TimedCSVLogger(os.path.join(log_dir, 'training.csv'), append=True),
-                                       EarlyStopping(patience=patience),
-                                       ModelCheckpoint(weights_path, save_weights_only=True),
-                                       LogDirLogger(log_dir)], verbose=False,
-                            sample_weight=sample_weight,
-                            validation_data=validation_data)
+        if not noisify:
+            history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size, validation_split=0.2,
+                                callbacks=[ProgbarOrTQDM(),
+                                           TensorBoard(log_dir=log_dir, write_graph=False),
+                                           TimedCSVLogger(os.path.join(log_dir, 'training.csv'), append=True),
+                                           EarlyStopping(patience=patience),
+                                           ModelCheckpoint(weights_path, save_weights_only=True),
+                                           LogDirLogger(log_dir)], verbose=False,
+                                sample_weight=sample_weight,
+                                validation_data=validation_data)
+        else:
+            history = model.fit_generator(noisify_samples(X, Y, errors, batch_size, sample_weight),
+                                          samples_per_epoch=len(Y), nb_epoch=nb_epoch,
+#                                          validation_split=0.2,
+                                          callbacks=[ProgbarLogger(),
+                                                     TensorBoard(log_dir=log_dir,
+                                                                 write_graph=False),
+                                                     TimedCSVLogger(os.path.join(log_dir,
+                                                                                 'training.csv'),
+                                                                    append=True),
+#                                                     EarlyStopping(patience=patience), # no valid # no vali
+                                                     ModelCheckpoint(weights_path,
+                                                                     save_weights_only=True),
+                                                     LogDirLogger(log_dir)],
+                                          verbose=True,
+                                          validation_data=validation_data)
     return history

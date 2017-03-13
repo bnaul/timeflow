@@ -16,7 +16,7 @@ from light_curve import LightCurve
 
 
 # TODO interpolate at different time points
-def preprocess(X_raw, m_max=None, center=False, scale=False, drop_errors=True):
+def preprocess(X_raw, m_max=None):
     X = X_raw.copy()
 
     if m_max:
@@ -26,21 +26,17 @@ def preprocess(X_raw, m_max=None, center=False, scale=False, drop_errors=True):
     # Replace times w/ lags
     X[:, :, 0] = ku.times_to_lags(X[:, :, 0])
 
-    if center:
-        means = np.atleast_2d(np.nanmean(X[:, :, 1], axis=1)).T
-        X[:, :, 1] -= means
-    else:
-        means = None
-    if scale:
-        scales = np.atleast_2d(np.nanmax(np.abs(X[:, :, 1]), axis=1)).T
-        X[:, :, 1] /= scales
-    else:
-        scales = None
+    means = np.atleast_2d(np.nanmean(X[:, :, 1], axis=1)).T
+    X[:, :, 1] -= means
 
-    if drop_errors:
-        X = X[:, :, :2]
+#    scales = np.atleast_2d(np.nanmax(np.abs(X[:, :, 1]), axis=1)).T
+    scales = np.atleast_2d(np.std(X[:, :, 1], axis=1)).T
+    X[:, :, 1] /= scales
 
-    return X, {'means': means, 'scales': scales, 'wrong_units': wrong_units}
+    # drop_errors
+    X = X[:, :, :2]
+
+    return X, means, scales, wrong_units
 
 
 def main(args=None):
@@ -61,7 +57,7 @@ def main(args=None):
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
-    X, scale_params = preprocess(X_raw, args.m_max, True, True, True)
+    X, means, scales, wrong_units = preprocess(X_raw, args.m_max)
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
     model_input = [main_input, aux_input]
@@ -78,13 +74,16 @@ def main(args=None):
     run = ku.get_run_id(**vars(args))
 
 #    sample_weight = (~np.isnan(X[:, :, -1])).astype('float')
-    sample_weight = 1. / X_raw[:, :, -1]
+    sample_weight = 1. / X_raw[:, :, 2]
     sample_weight = (sample_weight.T / np.nanmean(sample_weight, axis=1)).T
     sample_weight[np.isnan(sample_weight)] = 0.0
     X[np.isnan(X)] = -1.
+
+    errors = X_raw[:, :, 2] / scales
+
     history = ku.train_and_log({'main_input': X, 'aux_input': np.delete(X, 1, axis=2)},
-                               X[:, :, 1:], run, model, sample_weight=sample_weight,
-                               **vars(args))
+                               X[:, :, [1]], run, model, sample_weight=sample_weight,
+                               errors=errors, **vars(args))
 
     return X, X_raw, model, args
 
