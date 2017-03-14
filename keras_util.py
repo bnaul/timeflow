@@ -106,7 +106,7 @@ def noisify_samples(inputs, outputs, errors, batch_size=500, sample_weight=None)
 
         for i in range(ceil(len(X) / batch_size)):
             inds = shuffle_inds[(i * batch_size):((i + 1) * batch_size)]
-            yield ([X_noisy[inds], X_aux[inds]], outputs[inds], sample_weight[inds])
+            yield ([X_noisy[inds], X_aux[inds]], X_noisy[inds, :, 1], sample_weight[inds])
 
 
 def parse_model_args(arg_dict=None):
