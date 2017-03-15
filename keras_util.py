@@ -15,19 +15,15 @@ from keras.optimizers import Adam
 from keras.callbacks import (Callback, TensorBoard, EarlyStopping,
                              ModelCheckpoint, CSVLogger, ProgbarLogger)
 
-# TODO is there a better way to do this?
-try:
-    if 'get_ipython' in vars() and get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
-        from keras_tqdm import TQDMNotebookCallback as ProgbarOrTQDM
-    else:
-        from keras_tqdm import TQDMCallback as ProgbarOrTQDM
-        import sys
-        class ProgbarOrTQDM(TQDMCallback):  # redirect TQDMCallback to stdout
-            def __init__(self):
-                TQDMCallback.__init__(self)
-                self.output_file = sys.stdout
-except:
-    from keras.callbacks import ProgbarLogger as ProgbarOrTQDM
+if 'get_ipython' in vars() and get_ipython().__class__.__name__ == 'ZMQInteractiveShell':
+    from keras_tqdm import TQDMNotebookCallback as Progbar
+else:
+    from keras_tqdm import TQDMCallback
+    import sys
+    class Progbar(TQDMCallback):  # redirect TQDMCallback to stdout
+        def __init__(self):
+            TQDMCallback.__init__(self)
+            self.output_file = sys.stdout
 
 
 class LogDirLogger(Callback):
@@ -106,7 +102,7 @@ def noisify_samples(inputs, outputs, errors, batch_size=500, sample_weight=None)
 
         for i in range(ceil(len(X) / batch_size)):
             inds = shuffle_inds[(i * batch_size):((i + 1) * batch_size)]
-            yield ([X_noisy[inds], X_aux[inds]], X_noisy[inds, :, 1], sample_weight[inds])
+            yield ([X_noisy[inds], X_aux[inds]], X_noisy[inds, :, 1:2], sample_weight[inds])
 
 
 def parse_model_args(arg_dict=None):
@@ -234,7 +230,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                   sort_keys=True, indent=2)
         if not noisify:
             history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size, validation_split=0.2,
-                                callbacks=[ProgbarOrTQDM(),
+                                callbacks=[Progbar(),
                                            TensorBoard(log_dir=log_dir, write_graph=False),
                                            TimedCSVLogger(os.path.join(log_dir, 'training.csv'), append=True),
                                            EarlyStopping(patience=patience),
@@ -246,7 +242,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
             history = model.fit_generator(noisify_samples(X, Y, errors, batch_size, sample_weight),
                                           samples_per_epoch=len(Y), nb_epoch=nb_epoch,
 #                                          validation_split=0.2,
-                                          callbacks=[ProgbarLogger(),
+                                          callbacks=[Progbar(),
                                                      TensorBoard(log_dir=log_dir,
                                                                  write_graph=False),
                                                      TimedCSVLogger(os.path.join(log_dir,

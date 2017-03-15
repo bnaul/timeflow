@@ -7,6 +7,7 @@ import autoencoder
 import period
 import period_inverse
 import periodogram
+import survey_autoencoder
 
 
 sys.argv = ['']
@@ -79,3 +80,13 @@ def test_autoencoder_rnn():
                                  "model_type": model_type, "sim_type": log_dir}
                     test_args = parse_model_args({**DEFAULT_ARGS, **test_args})
                     autoencoder.main(test_args)
+
+
+def test_survey_autoencoder_rnn():
+    for noisify in [False, True]:
+        with tempfile.TemporaryDirectory() as log_dir:
+            test_args = {"num_layers": 1, "model_type": "gru", "sim_type":
+                         log_dir, "noisify": noisify, "survey_files":
+                         ["tests/test_lcs.pkl"]}
+            test_args = parse_model_args({**DEFAULT_ARGS, **test_args})
+            survey_autoencoder.main(test_args)
