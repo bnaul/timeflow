@@ -47,10 +47,12 @@ def main(args=None):
 
     if not args.survey_files:
         raise ValueError("No survey files given")
-    full = [lc for f in args.survey_files for lc in joblib.load(f)]
+    lc_lists = [joblib.load(f) for f in args.survey_files]
+    n_reps = [max(len(y) for y in lc_lists) // len(x) for x in lc_lists]
+    combined = sum([x * i for x, i in zip(lc_lists, n_reps)], [])
     if args.lomb_score:
-        full = [lc for lc in full if lc.best_score >= args.lomb_score]
-    split = [el for lc in full for el in lc.split(args.n_min, args.n_max)]
+        combined = [lc for lc in combined if lc.best_score >= args.lomb_score]
+    split = [el for lc in combined for el in lc.split(args.n_min, args.n_max)]
     X_list = [np.c_[lc.times, lc.measurements, lc.errors] for lc in split]
 
     X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')
