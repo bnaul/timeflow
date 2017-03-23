@@ -49,7 +49,7 @@ class LightCurve():
 
     def load_asas():
         light_curves = []
-        bigmacc = pd.read_csv('data/asas/bigmacc.txt', delimiter='\t', index_col='ASAS_ID')
+        bigmacc = pd.read_csv('data/asas/bigmacc.csv', index_col='ASAS_ID')
         for fname in glob.glob('./data/asas/*/*'):
             with open(fname) as f:
                 dfs = [pd.read_csv(StringIO(chunk), comment='#', delim_whitespace=True) for chunk in f.read().split('#     ')[1:]]
@@ -60,7 +60,12 @@ class LightCurve():
                     lc = LightCurve(name=os.path.basename(fname), survey='ASAS',
                                     times=df.HJD.values, measurements=df.MAG_0.values,
                                     errors=df.MER_0.values)
-                    lc.label = bigmacc.loc[lc.name].CLASS if lc.name in bigmacc.index else None
+                    if lc.name in bigmacc.index:
+                        entry = bigmacc.loc[lc.name]
+                        if pd.isnull(entry.TRAIN_CLASS):
+                            lc.label = entry.CLASS
+                        else:
+                            lc.label = entry.TRAIN_CLASS
                     lc.fit_lomb_scargle()
                     light_curves.append(lc)
         return light_curves
@@ -74,8 +79,8 @@ class LightCurve():
                     l[0] == '#'][-1].lstrip('#').split()
         header.columns = colnames
         header.set_index('LINEARobjectID', inplace=True)
-        LC_types = ['RR_Lyrae_ab', 'RR_Lyrae_c', '???', 'Algol',
-                    'Contact_Binary', 'Delta_Scuti']
+        LC_types = ['RR_Lyrae_FM', 'RR_Lyrae_FO', '???', 'Beta_Persei',
+                    'W_Ursae_Maj', 'Delta_Scuti']
 
         for fname in glob.glob('./data/linear/lc/*'):
             df = pd.read_csv(fname, header=0)

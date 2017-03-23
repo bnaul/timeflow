@@ -40,8 +40,7 @@ def preprocess(X_raw, m_max=None):
 
 
 def main(args=None):
-    if not args:
-        args = ku.parse_model_args()
+    args = ku.parse_model_args(args)
 
     np.random.seed(0)
 

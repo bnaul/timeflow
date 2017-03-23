@@ -196,7 +196,7 @@ def limited_memory_session(gpu_frac):
 def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                   metrics=[], sample_weight=None, no_train=False, patience=20,
                   finetune_rate=None, validation_data=None, gpu_id=None, gpu_frac=None,
-                  noisify=False, errors=None, **kwargs):
+                  noisify=False, errors=None, pretrain_weights=None, **kwargs):
     optimizer = Adam(lr=lr if not finetune_rate else finetune_rate)
     print(metrics)
     if gpu_id or gpu_frac:
@@ -228,6 +228,8 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                                   'kwargs', 'validation_data', 'errors']}
         json.dump(param_log, open(os.path.join(log_dir, 'param_log.json'), 'w'),
                   sort_keys=True, indent=2)
+        if pretrain_weights:
+            model.load_weights(pretrain_weights, by_name=True)
         if not noisify:
             history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size, validation_split=0.2,
                                 callbacks=[Progbar(),
