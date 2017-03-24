@@ -36,7 +36,7 @@ def main(args=None):
     combined = [lc for lc in combined if lc.label in classes]
     if args.lomb_score:
         combined = [lc for lc in combined if lc.best_score >= args.lomb_score]
-    split = [el for lc in combined for el in lc.split(args.n_min, args.n_max)[:1]]
+    split = [el for lc in combined for el in lc.split(args.n_min, args.n_max)]
     if args.period_fold:
         for lc in split:
             lc.period_fold()
@@ -63,6 +63,23 @@ def main(args=None):
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
                        'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
 
+<<<<<<< ad7e6f59e689ea3defcf5fdc38beef3138b8f774
+=======
+#    if args.pretrain:
+#        auto_args = {k: v for k, v in args.__dict__.items() if k != 'pretrain'}
+#        auto_args['sim_type'] = args.pretrain
+##        auto_args['no_train'] = True
+#        auto_args['nb_epoch'] = 1; auto_args['loss'] = 'mse'; auto_args['batch_size'] = 32; auto_args['sim_type'] = 'test'
+#        _, _, auto_model, _ = survey_autoencoder(auto_args)
+#        for layer in auto_model.layers:
+#            layer.trainable = False
+#        model_input = auto_model.input[0]
+#        encode = auto_model.get_layer('encoding').output
+#    else:
+#        model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
+#        encode = encoder(model_input, layer=model_type_dict[args.model_type],
+#                         output_size=args.embedding, **vars(args))
+>>>>>>> Update survey classifer
     model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     encode = encoder(model_input, layer=model_type_dict[args.model_type],
                      output_size=args.embedding, **vars(args))
@@ -78,14 +95,24 @@ def main(args=None):
     if args.pretrain:
         for layer in model.layers:
             layer.trainable = False
+<<<<<<< ad7e6f59e689ea3defcf5fdc38beef3138b8f774
         pretrain_weights = os.path.join('keras_logs', args.pretrain, run, 'weights.h5')
     else:
         pretrain_weights = None
+=======
+#        K.get_session().run(tf.global_variables_initializer())
+        model.load_weights(os.path.join('keras2_logs', args.pretrain, run, 'weights.h5'),
+                           by_name=True)
+>>>>>>> Update survey classifer
 
     history = ku.train_and_log([X[train], np.c_[means, scales][train]], Y[train],
                                run, model, metrics=['accuracy'],
                                validation_data=([X[valid], np.c_[means, scales][valid]], Y[valid]),
+<<<<<<< ad7e6f59e689ea3defcf5fdc38beef3138b8f774
                                pretrain_weights=pretrain_weights, **vars(args))
+=======
+                               **vars(args))
+>>>>>>> Update survey classifer
     return X, X_raw, Y, model, args
 
 
