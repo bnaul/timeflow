@@ -13,8 +13,7 @@ import keras_util as ku
 
 
 def main(args=None):
-    if not args:
-        args = ku.parse_model_args()
+    args = ku.parse_model_args(args)
 
     N = args.N_train + args.N_test
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train

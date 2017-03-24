@@ -12,8 +12,7 @@ from autoencoder import decoder
 
 
 def main(args=None):
-    if args is None:
-        args = ku.parse_model_args()
+    args = ku.parse_model_args(args)
 
     np.random.seed(0)
     N = args.N_train + args.N_test

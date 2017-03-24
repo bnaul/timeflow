@@ -110,8 +110,7 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
 
 
 def main(args=None):
-    if not args:
-        args = ku.parse_model_args()
+    args = ku.parse_model_args(args)
 
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
     X, Y, X_raw, labels, = sample_data.periodic(args.N_train + args.N_test, args.n_min,

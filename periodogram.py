@@ -12,8 +12,7 @@ import keras_util as ku
 
 
 def main(args=None):
-    if not args:
-        args = ku.parse_model_args()
+    args = ku.parse_model_args(args)
 
     np.random.seed(0)
     N = args.N_train + args.N_test
