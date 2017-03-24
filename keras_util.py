@@ -215,7 +215,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics,
                   sample_weight_mode='temporal' if sample_weight is not None else None)
 
-    log_dir = os.path.join(os.getcwd(), 'keras_logs', sim_type, run)
+    log_dir = os.path.join(os.getcwd(), 'keras2_logs', sim_type, run)
     weights_path = os.path.join(log_dir, 'weights.h5')
     loaded = False
     if os.path.exists(weights_path):
