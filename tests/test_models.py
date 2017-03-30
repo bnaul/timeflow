@@ -54,16 +54,19 @@ def test_autoencoder_rnn(tmpdir):
 
 def test_survey_autoencoder_rnn(tmpdir):
     for noisify in [False, True]:
-        test_args = {"num_layers": 1, "model_type": "gru",
-                     "noisify": noisify, "survey_files": ["tests/test_lcs.pkl"],
-                     "sim_type": str(tmpdir) + "_survey_auto" + ("_noise" if noisify else ""),
-                     **DEFAULT_ARGS}
-        survey_autoencoder.main(test_args)
+        for period_fold in [False, True]:
+            test_args = {"num_layers": 1, "model_type": "gru",
+                         "noisify": noisify, "period_fold": period_fold,
+                         "survey_files": ["tests/test_lcs.pkl"],
+                         "sim_type": str(tmpdir) + "_survey_auto" + ("_noise" if noisify else ""),
+                         **DEFAULT_ARGS}
+            survey_autoencoder.main(test_args)
 
 
 def test_survey_classifier_rnn(tmpdir):
-    test_args = {"num_layers": 1, "model_type": "gru",
-                 "survey_files": ["tests/test_lcs.pkl"],
-                 "sim_type": str(tmpdir) + "_survey_classifier",
-                 **DEFAULT_ARGS}
-    survey_classifier.main(test_args)
+    for period_fold in [False, True]:
+        test_args = {"num_layers": 1, "model_type": "gru", "period_fold": period_fold,
+                     "survey_files": ["tests/test_lcs.pkl"],
+                     "sim_type": str(tmpdir) + "_survey_classifier",
+                     **DEFAULT_ARGS}
+        survey_classifier.main(test_args)

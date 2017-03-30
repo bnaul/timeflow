@@ -37,6 +37,9 @@ def main(args=None):
     if args.lomb_score:
         combined = [lc for lc in combined if lc.best_score >= args.lomb_score]
     split = [el for lc in combined for el in lc.split(args.n_min, args.n_max)[:1]]
+    if args.period_fold:
+        for lc in split:
+            lc.period_fold()
     X_list = [np.c_[lc.times, lc.measurements, lc.errors] for lc in split]
 
     classnames, y_inds = np.unique([lc.label for lc in split], return_inverse=True)

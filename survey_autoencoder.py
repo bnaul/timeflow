@@ -52,6 +52,9 @@ def main(args=None):
     if args.lomb_score:
         combined = [lc for lc in combined if lc.best_score >= args.lomb_score]
     split = [el for lc in combined for el in lc.split(args.n_min, args.n_max)]
+    if args.period_fold:
+        for lc in split:
+            lc.period_fold()
     X_list = [np.c_[lc.times, lc.measurements, lc.errors] for lc in split]
 
     X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')

@@ -10,7 +10,8 @@ from gatspy.periodic import LombScargleFast
 
 class LightCurve():
     def __init__(self, times, measurements, errors, survey=None, name=None,
-                 best_period=None, best_score=None, label=None):
+                 best_period=None, best_score=None, label=None, p=None,
+                 p_signif=None, p_class=None):
         self.times = times
         self.measurements = measurements
         self.errors = errors
@@ -19,6 +20,9 @@ class LightCurve():
         self.best_period = best_period
         self.best_score = best_score
         self.label = label
+        self.p = p
+        self.p_signif = p_signif
+        self.p_class = p_class
 
     def __repr__(self):
         return "LightCurve(" + ', '.join("{}={}".format(k, v)
@@ -29,13 +33,15 @@ class LightCurve():
 
     def split(self, n_min=0, n_max=np.inf):
         inds = np.arange(len(self.times))
-        splits = [x for x in np.array_split(inds, np.arange(n_max, len(inds), step=n_max))
+        splits = [np.array(x)
+                  for x in np.array_split(inds, np.arange(n_max, len(inds), step=n_max))
                   if len(x) >= n_min]
         return [LightCurve(survey=self.survey, name=self.name,
-                           times=[self.times[i] for i in s],
-                           measurements=[self.measurements[i] for i in s],
-                           errors=[self.errors[i] for i in s], best_period=self.best_period,
-                           best_score=self.best_score, label=self.label)
+                           times=self.times[s],
+                           measurements=self.measurements[s],
+                           errors=self.errors[s], best_period=self.best_period,
+                           best_score=self.best_score, label=self.label,
+                           p=self.p, p_signif=self.p_signif, p_class=self.p_class)
                 for s in splits]
 
     def fit_lomb_scargle(self):
@@ -46,6 +52,13 @@ class LightCurve():
         model_gat.fit(self.times, self.measurements, self.errors)
         self.best_period = model_gat.best_period
         self.best_score = model_gat.score(model_gat.best_period).item()
+
+    def period_fold(self):
+        self.times = self.times % self.p
+        inds = np.argsort(self.times)
+        self.times = self.times[inds]
+        self.measurements = self.measurements[inds]
+        self.errors = self.errors[inds]
 
     def load_asas():
         light_curves = []
@@ -96,7 +109,8 @@ class LightCurve():
                             survey='LINEAR', times=df.mjd.values,
                             measurements=df.m.values, errors=df.merr.values)
             lc.label = LC_types[header.LCtype.loc[int(lc.name)] - 1]
-            lc.fit_lomb_scargle()
+#            lc.fit_lomb_scargle()
+            lc.p = np.exp(header.logP.loc[int(lc.name)])
             light_curves.append(lc)
         return light_curves
 

@@ -143,7 +143,9 @@ def parse_model_args(arg_dict=None):
     parser.add_argument('--bidirectional', dest='bidirectional', action='store_true')
     parser.add_argument("--survey_files", type=str, nargs='*')
     parser.add_argument('--noisify', dest='noisify', action='store_true')
-    parser.set_defaults(even=False, batch_norm=False, bidirectional=False, noisify=False)
+    parser.add_argument('--period_fold', dest='period_fold', action='store_true')
+    parser.set_defaults(even=False, batch_norm=False, bidirectional=False, noisify=False,
+                       period_fold=False)
     args = parser.parse_args(None if arg_dict is None else [])  # don't read argv if arg_dict present
 
     if arg_dict:  # merge additional arguments w/ defaults
