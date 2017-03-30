@@ -49,7 +49,8 @@ class LightCurve():
 
     def load_asas():
         light_curves = []
-        bigmacc = pd.read_csv('data/asas/bigmacc.csv', index_col='ASAS_ID')
+        bigmacc = pd.read_csv('data/asas/asas_class_catalog_v3_0.csv', index_col='ASAS_ID')
+#                              thousands=',')
         for fname in glob.glob('./data/asas/*/*'):
             with open(fname) as f:
                 dfs = [pd.read_csv(StringIO(chunk), comment='#', delim_whitespace=True) for chunk in f.read().split('#     ')[1:]]
@@ -60,13 +61,19 @@ class LightCurve():
                     lc = LightCurve(name=os.path.basename(fname), survey='ASAS',
                                     times=df.HJD.values, measurements=df.MAG_0.values,
                                     errors=df.MER_0.values)
-                    if lc.name in bigmacc.index:
-                        entry = bigmacc.loc[lc.name]
-                        if pd.isnull(entry.TRAIN_CLASS):
-                            lc.label = entry.CLASS
-                        else:
-                            lc.label = entry.TRAIN_CLASS
-                    lc.fit_lomb_scargle()
+                    entry = bigmacc.loc[lc.name]
+                    lc.p = entry.P
+                    lc.p_signif = entry.P_signif
+                    if not pd.isnull(entry.Train_Class):
+                        lc.label = entry.Train_Class
+                        lc.p_class = 1.0
+                    elif entry.P_Class > 0.95:
+                        lc.label = entry.Class
+                        lc.p_class = entry.P_Class
+                    else:
+                        lc.label = None
+                        lc.p_class = None
+#                    lc.fit_lomb_scargle()
                     light_curves.append(lc)
         return light_curves
 
