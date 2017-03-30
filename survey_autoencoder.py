@@ -78,12 +78,11 @@ def main(args=None):
     run = ku.get_run_id(**vars(args))
 
 #    sample_weight = (~np.isnan(X[:, :, -1])).astype('float')
-    sample_weight = 1. / X_raw[:, :, 2]
-    sample_weight = (sample_weight.T / np.nanmean(sample_weight, axis=1)).T
+    errors = X_raw[:, :, 2] / scales
+    sample_weight = 1. / errors
+#    sample_weight = (sample_weight.T / np.nanmean(sample_weight, axis=1)).T
     sample_weight[np.isnan(sample_weight)] = 0.0
     X[np.isnan(X)] = -1.
-
-    errors = X_raw[:, :, 2] / scales
 
     history = ku.train_and_log({'main_input': X, 'aux_input': np.delete(X, 1, axis=2)},
                                X[:, :, [1]], run, model, sample_weight=sample_weight,
