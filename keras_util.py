@@ -7,6 +7,7 @@ import datetime
 import json
 import os
 import shutil
+import types
 import numpy as np
 import tensorflow as tf
 import keras.backend as K
@@ -77,6 +78,11 @@ def lags_to_times(dT):
     """
     assert dT.ndim == 2, "dT must be an (N x n_step) matrix"
     return np.c_[np.zeros(dT.shape[0]), np.cumsum(dT[:,:-1], axis=1)]
+
+
+def tukey_biweight(y_true, y_pred, c=4.6851):
+    return K.mean(K.clip(c ** 2 * (1 - K.pow(1 - K.square((y_pred - y_true) / c), 3)),
+                         0, c ** 2 / 6), axis=-1)
 
 
 def noisify_samples(inputs, outputs, errors, batch_size=500, sample_weight=None):
@@ -156,6 +162,8 @@ def parse_model_args(arg_dict=None):
     for key in ['size', 'num_layers', 'drop_frac', 'lr', 'model_type', 'sim_type', 'n_min', 'n_max']:
         if getattr(args, key) is None:
             parser.error("Missing argument {}".format(key))
+    if args.loss == 'tukey':
+        args.loss = tukey_biweight
 
     return args
 
@@ -227,7 +235,8 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         param_log.update(kwargs)
         param_log = {k: v for k, v in param_log.items()
                      if k not in ['X', 'Y', 'model', 'optimizer', 'sample_weight',
-                                  'kwargs', 'validation_data', 'errors']}
+                                  'kwargs', 'validation_data', 'errors']
+                        and not isinstance(v, types.FunctionType)}
         json.dump(param_log, open(os.path.join(log_dir, 'param_log.json'), 'w'),
                   sort_keys=True, indent=2)
         if pretrain_weights:

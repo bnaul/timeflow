@@ -88,8 +88,8 @@ def main(args=None):
                                X[:, :, [1]], run, model, sample_weight=sample_weight,
                                errors=errors, **vars(args))
 
-    return X, X_raw, model, args
+    return X, X_raw, model, means, scales, wrong_units, args
 
 
 if __name__ == '__main__':
-    X, X_raw, model, args = main()
+    X, X_raw, model, means, scales, wrong_units, args = main()
