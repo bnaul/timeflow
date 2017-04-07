@@ -110,7 +110,7 @@ class LightCurve():
                             measurements=df.m.values, errors=df.merr.values)
             lc.label = LC_types[header.LCtype.loc[int(lc.name)] - 1]
 #            lc.fit_lomb_scargle()
-            lc.p = np.exp(header.logP.loc[int(lc.name)])
+            lc.p = 10 ** header.logP.loc[int(lc.name)]
             light_curves.append(lc)
         return light_curves
 
