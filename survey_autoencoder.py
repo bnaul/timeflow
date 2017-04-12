@@ -51,6 +51,8 @@ def main(args=None):
     combined = sum([x * i for x, i in zip(lc_lists, n_reps)], [])
     if args.lomb_score:
         combined = [lc for lc in combined if lc.best_score >= args.lomb_score]
+    if args.ss_resid:
+        combined = [lc for lc in combined if lc.ss_resid <= args.ss_resid]
     split = [el for lc in combined for el in lc.split(args.n_min, args.n_max)]
     if args.period_fold:
         for lc in split:

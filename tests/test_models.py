@@ -1,7 +1,11 @@
 from argparse import Namespace
+import joblib
+import numpy as np
+import os
 import sys
 
 from keras_util import parse_model_args
+from light_curve import LightCurve
 import autoencoder
 import period
 import period_inverse
@@ -14,6 +18,24 @@ sys.argv = ['']
 DEFAULT_ARGS = {"size": 4, "drop_frac": 0.25, "n_min": 4, "n_max": 10,
                 "nb_epoch": 1, "N_train": 5, "N_test": 5, "lr": 1e-3,
                 "batch_size": 5, "embedding": 2, "filter_length": 3}
+
+
+def setup_module():
+    n = DEFAULT_ARGS['n_max']
+    labels = ['RR_Lyrae_FM', 'W_Ursae_Maj', 'Classical_Cepheid']
+    test_lcs = []
+    for i in range(50):
+        lc = LightCurve(times=np.sort(np.random.random(n)),
+                        measurements=np.random.random(n),
+                        errors=np.random.random(n),
+                        label=labels[i % len(labels)], p=np.random.random(),
+                        p_signif=np.random.random())
+        test_lcs.append(lc)
+    joblib.dump(test_lcs, 'tests/test_lcs.pkl')
+
+
+def teardown_module():
+    os.remove('tests/test_lcs.pkl')
 
 
 def test_period_conv(tmpdir):

@@ -5,13 +5,12 @@ from io import StringIO
 import numpy as np
 import pandas as pd
 import joblib
-from gatspy.periodic import LombScargleFast
 
 
 class LightCurve():
     def __init__(self, times, measurements, errors, survey=None, name=None,
                  best_period=None, best_score=None, label=None, p=None,
-                 p_signif=None, p_class=None):
+                 p_signif=None, p_class=None, ss_resid=None):
         self.times = times
         self.measurements = measurements
         self.errors = errors
@@ -23,6 +22,7 @@ class LightCurve():
         self.p = p
         self.p_signif = p_signif
         self.p_class = p_class
+        self.ss_resid = ss_resid
 
     def __repr__(self):
         return "LightCurve(" + ', '.join("{}={}".format(k, v)
@@ -41,10 +41,12 @@ class LightCurve():
                            measurements=self.measurements[s],
                            errors=self.errors[s], best_period=self.best_period,
                            best_score=self.best_score, label=self.label,
-                           p=self.p, p_signif=self.p_signif, p_class=self.p_class)
+                           p=self.p, p_signif=self.p_signif, p_class=self.p_class,
+                           ss_resid=self.ss_resid)
                 for s in splits]
 
     def fit_lomb_scargle(self):
+        from gatspy.periodic import LombScargleFast
         period_range = (0.005 * (max(self.times) - min(self.times)),
                         0.95 * (max(self.times) - min(self.times)))
         model_gat = LombScargleFast(fit_period=True, silence_warnings=True,
@@ -53,8 +55,18 @@ class LightCurve():
         self.best_period = model_gat.best_period
         self.best_score = model_gat.score(model_gat.best_period).item()
 
-    def period_fold(self):
-        self.times = self.times % self.p
+    def fit_supersmoother(self, periodic=True, scale=True):
+        from supersmoother import SuperSmoother
+        model = SuperSmoother(period=self.p if periodic else None)
+        model.fit(self.times, self.measurements, self.errors)
+        self.ss_resid = np.sqrt(np.mean((model.predict(self.times) - self.measurements) ** 2))
+        if scale:
+            self.ss_resid /= np.std(self.measurements)
+
+    def period_fold(self, p=None):
+        if p is None:
+            p = self.p
+        self.times = self.times % p
         inds = np.argsort(self.times)
         self.times = self.times[inds]
         self.measurements = self.measurements[inds]
@@ -66,7 +78,8 @@ class LightCurve():
 #                              thousands=',')
         for fname in glob.glob('./data/asas/*/*'):
             with open(fname) as f:
-                dfs = [pd.read_csv(StringIO(chunk), comment='#', delim_whitespace=True) for chunk in f.read().split('#     ')[1:]]
+                dfs = [pd.read_csv(StringIO(chunk), comment='#', delim_whitespace=True)
+                       for chunk in f.read().split('#     ')[1:]]
                 if len(dfs) > 0:
                     df = pd.concat(dfs)[['HJD', 'MAG_0', 'MER_0', 'GRADE']].sort_values(by='HJD')
                     df = df[df.GRADE <= 'B']
@@ -87,6 +100,7 @@ class LightCurve():
                         lc.label = None
                         lc.p_class = None
 #                    lc.fit_lomb_scargle()
+                    lc.fit_supersmoother()
                     light_curves.append(lc)
         return light_curves
 

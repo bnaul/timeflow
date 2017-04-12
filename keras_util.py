@@ -144,6 +144,7 @@ def parse_model_args(arg_dict=None):
     parser.add_argument("--first_N", type=int, default=None)
     parser.add_argument("--m_max", type=float, default=20.)
     parser.add_argument("--lomb_score", type=float, default=None)
+    parser.add_argument("--ss_resid", type=float, default=None)
     parser.add_argument('--pretrain', type=str, default=None)
     parser.add_argument('--finetune_rate', type=float, default=None)
     parser.add_argument('--bidirectional', dest='bidirectional', action='store_true')
