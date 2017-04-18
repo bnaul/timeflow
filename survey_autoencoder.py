@@ -30,7 +30,7 @@ def preprocess(X_raw, m_max=None):
     X[:, :, 1] -= means
 
 #    scales = np.atleast_2d(np.nanmax(np.abs(X[:, :, 1]), axis=1)).T
-    scales = np.atleast_2d(np.std(X[:, :, 1], axis=1)).T
+    scales = np.atleast_2d(np.nanstd(X[:, :, 1], axis=1)).T
     X[:, :, 1] /= scales
 
     # drop_errors
@@ -84,7 +84,7 @@ def main(args=None):
     sample_weight = 1. / errors
 #    sample_weight = (sample_weight.T / np.nanmean(sample_weight, axis=1)).T
     sample_weight[np.isnan(sample_weight)] = 0.0
-    X[np.isnan(X)] = -1.
+    X[np.isnan(X)] = 0.
 
     history = ku.train_and_log({'main_input': X, 'aux_input': np.delete(X, 1, axis=2)},
                                X[:, :, [1]], run, model, sample_weight=sample_weight,
