@@ -38,7 +38,7 @@ model = gru(output_len=Y.shape[1], n_step=n_min, size=size, num_layers=num_layer
 #model = conv(output_len=Y.shape[1], n_step=n_min, size=size, num_layers=num_layers, drop_frac=drop_frac, filter=filter)
 run = "{}_{:03d}_x{}_{:1.0e}_drop{}".format(sim_type, size, num_layers, lr, int(100 * drop_frac)).replace('e-', 'm')
 print(run)
-history = ku.train_and_log(X, Y, run, model, nb_epoch=100, batch_size=50, lr=lr,
+history = ku.train_and_log(X, Y, run, model, epochs=100, batch_size=50, lr=lr,
                            loss='categorical_crossentropy', sim_type=sim_type, metrics=['accuracy'])
 
 """

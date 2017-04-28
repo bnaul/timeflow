@@ -31,7 +31,7 @@ if __name__ == '__main__':
         'num_layers': [1, 2, 3],
         'drop_frac': [0.25],
         'n_min': [200], 'n_max': [200], 'sigma': [0.5], 
-        'nb_epoch': [2], 'lr': [5e-4], 'patience': [20],
+        'epochs': [2], 'lr': [5e-4], 'patience': [20],
 #	'embedding': [32],
     }
     rnn_only_args = {

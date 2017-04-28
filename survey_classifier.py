@@ -67,7 +67,7 @@ def main(args=None):
 #        auto_args = {k: v for k, v in args.__dict__.items() if k != 'pretrain'}
 #        auto_args['sim_type'] = args.pretrain
 ##        auto_args['no_train'] = True
-#        auto_args['nb_epoch'] = 1; auto_args['loss'] = 'mse'; auto_args['batch_size'] = 32; auto_args['sim_type'] = 'test'
+#        auto_args['epochs'] = 1; auto_args['loss'] = 'mse'; auto_args['batch_size'] = 32; auto_args['sim_type'] = 'test'
 #        _, _, auto_model, _ = survey_autoencoder(auto_args)
 #        for layer in auto_model.layers:
 #            layer.trainable = False

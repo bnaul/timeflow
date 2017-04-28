@@ -74,7 +74,7 @@ if __name__ == '__main__':
     parser.add_argument("num_layers", type=int)
     parser.add_argument("drop_frac", type=float)
     parser.add_argument("--batch_size", type=int, default=500)
-    parser.add_argument("--nb_epoch", type=int, default=250)
+    parser.add_argument("--epochs", type=int, default=250)
     parser.add_argument("--lr", type=float, default=0.002)
     parser.add_argument("--loss", type=str, default='categorical_crossentropy')
     parser.add_argument("--model_type", type=str, default='lstm')

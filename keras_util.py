@@ -117,7 +117,7 @@ def parse_model_args(arg_dict=None):
     parser.add_argument("--num_layers", type=int)
     parser.add_argument("--drop_frac", type=float)
     parser.add_argument("--batch_size", type=int, default=500)
-    parser.add_argument("--nb_epoch", type=int, default=250)
+    parser.add_argument("--epochs", type=int, default=250)
     parser.add_argument("--lr", type=float)
     parser.add_argument("--loss", type=str, default='mse')
     parser.add_argument("--loss_weights", type=float, nargs='*')
@@ -204,7 +204,7 @@ def limited_memory_session(gpu_frac):
         K.set_session(tf.Session(config=gpu_opts))
 
 
-def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
+def train_and_log(X, Y, run, model, epochs, batch_size, lr, loss, sim_type,
                   metrics=[], sample_weight=None, no_train=False, patience=20,
                   finetune_rate=None, validation_data=None, gpu_id=None, gpu_frac=None,
                   noisify=False, errors=None, pretrain_weights=None, **kwargs):
@@ -243,7 +243,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         if pretrain_weights:
             model.load_weights(pretrain_weights, by_name=True)
         if not noisify:
-            history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size, validation_split=0.2,
+            history = model.fit(X, Y, epochs=epochs, batch_size=batch_size, validation_split=0.2,
                                 callbacks=[Progbar(),
                                            TensorBoard(log_dir=log_dir, write_graph=False),
                                            TimedCSVLogger(os.path.join(log_dir, 'training.csv'), append=True),
@@ -254,7 +254,7 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
                                 validation_data=validation_data)
         else:
             history = model.fit_generator(noisify_samples(X, Y, errors, batch_size, sample_weight),
-                                          samples_per_epoch=len(Y), nb_epoch=nb_epoch,
+                                          samples_per_epoch=len(Y), epochs=epochs,
 #                                          validation_split=0.2,
                                           callbacks=[Progbar(),
                                                      TensorBoard(log_dir=log_dir,

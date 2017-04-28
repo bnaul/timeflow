@@ -16,7 +16,7 @@ import survey_classifier
 
 sys.argv = ['']
 DEFAULT_ARGS = {"size": 4, "drop_frac": 0.25, "n_min": 4, "n_max": 10,
-                "nb_epoch": 1, "N_train": 5, "N_test": 5, "lr": 1e-3,
+                "epochs": 1, "N_train": 5, "N_test": 5, "lr": 1e-3,
                 "batch_size": 5, "embedding": 2, "filter_length": 3}
 
 
