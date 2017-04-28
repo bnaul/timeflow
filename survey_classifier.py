@@ -6,8 +6,8 @@ import joblib
 from sklearn.model_selection import StratifiedKFold
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
-                          Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
-from custom_layers import PhasedLSTM
+                          Conv1D, MaxPooling1D, SimpleRNN)
+#from custom_layers import PhasedLSTM
 import tensorflow as tf
 import keras.backend as K
 from keras.models import Model, Sequential
@@ -61,10 +61,8 @@ def main(args=None):
     train, valid = list(StratifiedKFold(n_splits=5, random_state=0).split(X_list, y_inds))[0]
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
-                       'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
+                       'conv': Conv1D}#, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
 
-<<<<<<< ad7e6f59e689ea3defcf5fdc38beef3138b8f774
-=======
 #    if args.pretrain:
 #        auto_args = {k: v for k, v in args.__dict__.items() if k != 'pretrain'}
 #        auto_args['sim_type'] = args.pretrain
@@ -79,7 +77,6 @@ def main(args=None):
 #        model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
 #        encode = encoder(model_input, layer=model_type_dict[args.model_type],
 #                         output_size=args.embedding, **vars(args))
->>>>>>> Update survey classifer
     model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     encode = encoder(model_input, layer=model_type_dict[args.model_type],
                      output_size=args.embedding, **vars(args))
@@ -95,24 +92,14 @@ def main(args=None):
     if args.pretrain:
         for layer in model.layers:
             layer.trainable = False
-<<<<<<< ad7e6f59e689ea3defcf5fdc38beef3138b8f774
-        pretrain_weights = os.path.join('keras_logs', args.pretrain, run, 'weights.h5')
+        pretrain_weights = os.path.join('keras2_logs', args.pretrain, run, 'weights.h5')
     else:
         pretrain_weights = None
-=======
-#        K.get_session().run(tf.global_variables_initializer())
-        model.load_weights(os.path.join('keras2_logs', args.pretrain, run, 'weights.h5'),
-                           by_name=True)
->>>>>>> Update survey classifer
 
     history = ku.train_and_log([X[train], np.c_[means, scales][train]], Y[train],
                                run, model, metrics=['accuracy'],
                                validation_data=([X[valid], np.c_[means, scales][valid]], Y[valid]),
-<<<<<<< ad7e6f59e689ea3defcf5fdc38beef3138b8f774
                                pretrain_weights=pretrain_weights, **vars(args))
-=======
-                               **vars(args))
->>>>>>> Update survey classifer
     return X, X_raw, Y, model, args
 
 

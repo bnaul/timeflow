@@ -3,8 +3,8 @@ np.random.seed(0)
 from sklearn.preprocessing import StandardScaler
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
-                          Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
-from custom_layers import PhasedLSTM
+                          Conv1D, MaxPooling1D, SimpleRNN)
+PhasedLSTM = None  #from custom_layers import PhasedLSTM
 from keras.models import Model, Sequential
 
 from autoencoder import encoder
@@ -40,7 +40,7 @@ def main(args=None):
         Y *= args.loss_weights
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
-                       'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
+                       'conv': Conv1D}#, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
 
     model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     encode = encoder(model_input, layer=model_type_dict[args.model_type],

@@ -2,9 +2,9 @@ import numpy as np
 np.random.seed(0)
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector, Masking,
-                          Recurrent, AtrousConv1D, Conv1D, Lambda, Bidirectional,
+                          Recurrent, Conv1D, Lambda, Bidirectional,
                           MaxPooling1D, UpSampling1D, SimpleRNN, BatchNormalization)
-from custom_layers import PhasedLSTM
+#from custom_layers import PhasedLSTM
 from keras.models import Model, Sequential
 
 import sample_data
@@ -27,8 +27,8 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
             kwargs['activation'] = 'relu'  # TODO pass in
             kwargs['filter_length'] = filter_length
             kwargs['border_mode'] = 'same'
-        if issubclass(layer, AtrousConv1D):
-            kwargs['atrous_rate'] = 2 ** (i % 9)
+#        if issubclass(layer, AtrousConv1D):
+#            kwargs['atrous_rate'] = 2 ** (i % 9)
 
         # TODO apply this more elegantly? something like a decorator?
         if not bidirectional or not issubclass(layer, Recurrent):
@@ -42,10 +42,10 @@ def encoder(model_input, layer, size, num_layers, drop_frac=0.0, batch_norm=Fals
             encode = BatchNormalization(name='bn_encode_{}'.format(i))(encode)
         if pool:
             encode = MaxPooling1D(pool, border_mode='same', name='pool_{}'.format(i))(encode)
-        if i < num_layers - 1 and issubclass(layer, PhasedLSTM): # TODO experimental
-                aux_input = Lambda(lambda a: a[:, :, 0:1],
-                                   output_shape=lambda s: (s[0], s[1], 1))(model_input)
-                encode = merge([aux_input, encode], mode='concat')
+#        if i < num_layers - 1 and issubclass(layer, PhasedLSTM): # TODO experimental
+#                aux_input = Lambda(lambda a: a[:, :, 0:1],
+#                                   output_shape=lambda s: (s[0], s[1], 1))(model_input)
+#                encode = merge([aux_input, encode], mode='concat')
 
     if len(encode.get_shape()) > 2:
         encode = Flatten(name='flatten')(encode)
@@ -88,8 +88,8 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
             kwargs['activation'] = 'relu'  # TODO pass in
             kwargs['filter_length'] = filter_length
             kwargs['border_mode'] = 'same'
-        if issubclass(layer, AtrousConv1D):
-            kwargs['atrous_rate'] = 2 ** (i % 9)
+#        if issubclass(layer, AtrousConv1D):
+#            kwargs['atrous_rate'] = 2 ** (i % 9)
 
         if not bidirectional or not issubclass(layer, Recurrent):
             decode = layer(size, name='decode_{}'.format(i), **kwargs)(decode)
@@ -129,14 +129,14 @@ def main(args=None):
         X_raw[np.isnan(X_raw)] = -1.
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
-                       'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
+                       'conv': Conv1D}#, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
 
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     if args.even:
         model_input = main_input
         aux_input = None
-        if args.model_type == 'phased':
-            raise NotImplementedError("Phased LSTM not implemented for --even")
+#        if args.model_type == 'phased':
+#            raise NotImplementedError("Phased LSTM not implemented for --even")
     else:
         aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
         model_input = [main_input, aux_input]

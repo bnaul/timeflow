@@ -2,7 +2,7 @@ numpy
 pandas
 scikit-learn
 tensorflow
-keras==1.2.2
+keras>=2.0.3
 git+https://github.com/bstriner/keras-tqdm.git
 h5py
 gatspy

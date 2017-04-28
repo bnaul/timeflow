@@ -2,9 +2,8 @@ import numpy as np
 import tensorflow as tf
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU, SimpleRNN,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
-                          Conv1D, AtrousConv1D)
+                          Conv1D)
 from keras.models import Model, Sequential
-from keras.initializations import normal, identity
 
 import sample_data
 import keras_util as ku
@@ -32,7 +31,7 @@ def main(args=None):
     Y = sample_data.phase_to_sin_cos(Y)
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
-                       'conv': Conv1D, 'atrous': AtrousConv1D}
+                       'conv': Conv1D}#, 'atrous': AtrousConv1D}
 
     encode = Input(shape=(Y.shape[1],), name='main_input')
     if args.even:

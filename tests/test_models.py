@@ -40,7 +40,7 @@ def teardown_module():
 
 def test_period_conv(tmpdir):
     for num_layers in [1, 2]:
-        for model_type in ["conv", "atrous"]:
+        for model_type in ["conv"]:
             test_args = {"num_layers": num_layers, "model_type": model_type,
                          "sim_type": str(tmpdir) + "_period",
                          **DEFAULT_ARGS}
@@ -58,7 +58,7 @@ def test_period_rnn(tmpdir):
 
 def test_autoencoder_conv(tmpdir):
     for num_layers in [1, 2]:
-        for model_type in ["conv", "atrous"]:
+        for model_type in ["conv"]:
             test_args = {"num_layers": num_layers, "model_type": model_type,
                          "sim_type": str(tmpdir) + "_auto",
                          **DEFAULT_ARGS}

@@ -3,7 +3,7 @@ from scipy.fftpack import dct
 from scipy.signal import lombscargle
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
-                          Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
+                          Conv1D, MaxPooling1D, SimpleRNN)
 from keras.models import Model, Sequential
 
 from autoencoder import encoder
@@ -33,7 +33,7 @@ def main(args=None):
             F[i] = lombscargle(X[i, :, 0], X[i, :, 1], freqs)
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
-                       'conv': Conv1D, 'atrous': AtrousConv1D}
+                       'conv': Conv1D}#, 'atrous': AtrousConv1D}
 
     model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     encode = encoder(model_input, layer=model_type_dict[args.model_type], **vars(args))

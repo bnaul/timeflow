@@ -5,8 +5,8 @@ import pandas as pd
 import joblib
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
-                          Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
-from custom_layers import PhasedLSTM
+                          Conv1D, MaxPooling1D, SimpleRNN)
+#from custom_layers import PhasedLSTM
 from keras.models import Model, Sequential
 from keras.preprocessing.sequence import pad_sequences
 
@@ -62,7 +62,7 @@ def main(args=None):
     X_raw = pad_sequences(X_list, value=np.nan, dtype='float', padding='post')
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
-                       'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
+                       'conv': Conv1D}#, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
     X, means, scales, wrong_units = preprocess(X_raw, args.m_max)
     main_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     aux_input = Input(shape=(X.shape[1], X.shape[-1] - 1), name='aux_input')
