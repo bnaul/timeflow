@@ -6,8 +6,8 @@ import joblib
 from sklearn.model_selection import StratifiedKFold
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
-                          Conv1D, AtrousConv1D, MaxPooling1D, SimpleRNN)
-from custom_layers import PhasedLSTM
+                          Conv1D, MaxPooling1D, SimpleRNN)
+#from custom_layers import PhasedLSTM
 import tensorflow as tf
 import keras.backend as K
 from keras.models import Model, Sequential
@@ -36,7 +36,7 @@ def main(args=None):
     combined = [lc for lc in combined if lc.label in classes]
     if args.lomb_score:
         combined = [lc for lc in combined if lc.best_score >= args.lomb_score]
-    split = [el for lc in combined for el in lc.split(args.n_min, args.n_max)[:1]]
+    split = [el for lc in combined for el in lc.split(args.n_min, args.n_max)]
     if args.period_fold:
         for lc in split:
             lc.period_fold()
@@ -58,11 +58,25 @@ def main(args=None):
 #    shuffled_inds = np.random.permutation(np.arange(len(X)))
 #    train = np.sort(shuffled_inds[:args.N_train])
 #    valid = np.sort(shuffled_inds[args.N_train:])
-    train, valid = list(StratifiedKFold(n_splits=5, random_state=0).split(X_list, y_inds))[0]
+    train, valid = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=0).split(X_list, y_inds))[0]
 
     model_type_dict = {'gru': GRU, 'lstm': LSTM, 'vanilla': SimpleRNN,
-                       'conv': Conv1D, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
+                       'conv': Conv1D}#, 'atrous': AtrousConv1D, 'phased': PhasedLSTM}
 
+#    if args.pretrain:
+#        auto_args = {k: v for k, v in args.__dict__.items() if k != 'pretrain'}
+#        auto_args['sim_type'] = args.pretrain
+##        auto_args['no_train'] = True
+#        auto_args['epochs'] = 1; auto_args['loss'] = 'mse'; auto_args['batch_size'] = 32; auto_args['sim_type'] = 'test'
+#        _, _, auto_model, _ = survey_autoencoder(auto_args)
+#        for layer in auto_model.layers:
+#            layer.trainable = False
+#        model_input = auto_model.input[0]
+#        encode = auto_model.get_layer('encoding').output
+#    else:
+#        model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
+#        encode = encoder(model_input, layer=model_type_dict[args.model_type],
+#                         output_size=args.embedding, **vars(args))
     model_input = Input(shape=(X.shape[1], X.shape[-1]), name='main_input')
     encode = encoder(model_input, layer=model_type_dict[args.model_type],
                      output_size=args.embedding, **vars(args))
