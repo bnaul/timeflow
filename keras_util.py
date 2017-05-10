@@ -138,7 +138,7 @@ def parse_model_args(arg_dict=None):
     parser.add_argument('--no_train', dest='no_train', action='store_true')
     parser.add_argument("--filter_length", type=int, default=None)
     parser.add_argument('--embedding', type=int, default=None)
-#    parser.add_argument("--patience", type=int, default=20)
+    parser.add_argument("--patience", type=int, default=20)
     parser.add_argument('--batch_norm', dest='batch_norm', action='store_true')
     parser.add_argument('--pool', type=int, default=None)
     parser.add_argument("--first_N", type=int, default=None)

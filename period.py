@@ -1,5 +1,4 @@
 import numpy as np
-np.random.seed(0)
 from sklearn.preprocessing import StandardScaler
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector,
@@ -13,6 +12,7 @@ import keras_util as ku
 
 
 def main(args=None):
+    np.random.seed(0)
     args = ku.parse_model_args(args)
 
     N = args.N_train + args.N_test

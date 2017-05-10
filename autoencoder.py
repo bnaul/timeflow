@@ -1,5 +1,4 @@
 import numpy as np
-np.random.seed(0)
 from keras.layers import (Input, Dense, TimeDistributed, Activation, LSTM, GRU,
                           Dropout, merge, Reshape, Flatten, RepeatVector, Masking,
                           Recurrent, AtrousConv1D, Conv1D, Lambda, Bidirectional,
@@ -110,6 +109,7 @@ def decoder(encode, layer, n_step, size, num_layers, drop_frac=0.0, aux_input=No
 
 
 def main(args=None):
+    np.random.seed(0)
     args = ku.parse_model_args(args)
 
     train = np.arange(args.N_train); test = np.arange(args.N_test) + args.N_train
