@@ -88,7 +88,7 @@ def main(args=None):
 
     history = ku.train_and_log({'main_input': X, 'aux_input': np.delete(X, 1, axis=2)},
                                X[:, :, [1]], run, model, sample_weight=sample_weight,
-                               errors=errors, **vars(args))
+                               errors=errors, validation_split=0.0, **vars(args))
 
     return X, X_raw, model, means, scales, wrong_units, args
 

@@ -138,7 +138,7 @@ def parse_model_args(arg_dict=None):
     parser.add_argument('--no_train', dest='no_train', action='store_true')
     parser.add_argument("--filter_length", type=int, default=None)
     parser.add_argument('--embedding', type=int, default=None)
-    parser.add_argument("--patience", type=int, default=20)
+#    parser.add_argument("--patience", type=int, default=20)
     parser.add_argument('--batch_norm', dest='batch_norm', action='store_true')
     parser.add_argument('--pool', type=int, default=None)
     parser.add_argument("--first_N", type=int, default=None)
@@ -205,8 +205,9 @@ def limited_memory_session(gpu_frac):
 
 
 def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
-                  metrics=[], sample_weight=None, no_train=False, patience=20,
-                  finetune_rate=None, validation_data=None, gpu_id=None, gpu_frac=None,
+                  metrics=[], sample_weight=None, no_train=False, #patience=20,
+                  finetune_rate=None, validation_split=0.2,
+                  validation_data=None, gpu_id=None, gpu_frac=None,
                   noisify=False, errors=None, pretrain_weights=None, **kwargs):
     optimizer = Adam(lr=lr if not finetune_rate else finetune_rate)
     print(metrics)
@@ -243,14 +244,15 @@ def train_and_log(X, Y, run, model, nb_epoch, batch_size, lr, loss, sim_type,
         if pretrain_weights:
             model.load_weights(pretrain_weights, by_name=True)
         if not noisify:
-            history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size, validation_split=0.2,
+            history = model.fit(X, Y, nb_epoch=nb_epoch, batch_size=batch_size,
+                                sample_weight=sample_weight,
                                 callbacks=[Progbar(),
                                            TensorBoard(log_dir=log_dir, write_graph=False),
                                            TimedCSVLogger(os.path.join(log_dir, 'training.csv'), append=True),
-                                           EarlyStopping(patience=patience),
+#                                           EarlyStopping(patience=patience),
                                            ModelCheckpoint(weights_path, save_weights_only=True),
                                            LogDirLogger(log_dir)], verbose=False,
-                                sample_weight=sample_weight,
+                                validation_split=validation_split,
                                 validation_data=validation_data)
         else:
             history = model.fit_generator(noisify_samples(X, Y, errors, batch_size, sample_weight),
