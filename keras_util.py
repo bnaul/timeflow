@@ -129,7 +129,7 @@ def parse_model_args(arg_dict=None):
     parser.add_argument("--sigma", type=float, default=2e-9)
     parser.add_argument("--sim_type", type=str)
     parser.add_argument("--data_type", type=str, default='sinusoid')
-    parser.add_argument("--N_train", type=int, default=50000)
+    parser.add_argument("--N_train", type=int, default=None)
     parser.add_argument("--N_test", type=int, default=1000)
     parser.add_argument("--n_min", type=int, default=200)
     parser.add_argument("--n_max", type=int, default=200)
